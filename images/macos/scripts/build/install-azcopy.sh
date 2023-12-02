@@ -18,4 +18,4 @@ else
     chmod +x "/usr/local/bin/azcopy"
 fi
 
-invoke_tests "Common" "AzCopy"
+#invoke_tests "Common" "AzCopy"

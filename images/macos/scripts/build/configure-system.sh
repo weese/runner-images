@@ -16,10 +16,11 @@ if is_Monterey; then
 fi
 
 # Put documentation to $HOME root
-cp $HOME/image-generation/output/software-report/systeminfo.* $HOME/
+#cp $HOME/image-generation/output/software-report/systeminfo.* $HOME/
 
 # Put build vm assets scripts to proper directory
-mkdir -p /usr/local/opt/$USER/scripts
+sudo mkdir -p /usr/local/opt/$USER/scripts
+sudo chown -R $USER /usr/local/opt/$USER
 mv $HOME/image-generation/assets/* /usr/local/opt/$USER/scripts
 
 find /usr/local/opt/$USER/scripts -type f -name "*\.sh" -exec chmod +x {} \;
@@ -39,9 +40,16 @@ sudo rm -rf ~/utils /tmp/*
 
 # Erase all indexes and wait until the rebuilding process ends,
 # for now there is no way to get status of indexing process, it takes around 3 minutes to accomplish
-sudo mdutil -E /
-sudo log stream | grep -q -E 'mds.*Released.*BackgroundTask' || true
-echo "Indexing completed"
+# sudo mdutil -E /
+# sudo log stream | grep -q -E 'mds.*Released.*BackgroundTask' || true
+# echo "Indexing completed"
 
 # delete symlink for tests running
 sudo rm -f /usr/local/bin/invoke_tests
+
+# In our base image there is no runner user, so let's link it to the admin user's home
+sudo ln -s /Users/admin /Users/runner
+
+# link toolcache /Users/admin/hostedtoolcache to /Users/admin/actions-runner/_work/_tool
+mkdir -p /Users/admin/actions-runner/_work
+ln -s /Users/admin/hostedtoolcache /Users/admin/actions-runner/_work/_tool

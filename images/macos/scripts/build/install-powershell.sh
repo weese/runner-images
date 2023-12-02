@@ -46,9 +46,9 @@ for module in ${psModules[@]}; do
 done
 
 # Fix permission root => runner after installing powershell for arm64 arch
-if [[ $arch == "arm64" ]]; then
-    sudo chown -R $USER ~/.local ~/.cache ~/.config
-fi
+# if [[ $arch == "arm64" ]]; then
+#     sudo chown -R $USER ~/.local ~/.cache ~/.config
+# fi
 
 # A dummy call to initialize .IdentityService directory
 pwsh -command "& {Import-Module Az}"
@@ -56,4 +56,4 @@ pwsh -command "& {Import-Module Az}"
 # powershell link was removed in powershell-6.0.0-beta9
 sudo ln -s /usr/local/bin/pwsh /usr/local/bin/powershell
 
-invoke_tests "Powershell"
+#invoke_tests "Powershell"

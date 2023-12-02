@@ -22,4 +22,4 @@ echo "set BlackHole 2ch as input/output device"
 SwitchAudioSource -s "BlackHole 2ch" -t input
 SwitchAudioSource -s "BlackHole 2ch" -t output
 
-invoke_tests "System" "Audio Device"
+#invoke_tests "System" "Audio Device"

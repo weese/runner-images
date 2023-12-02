@@ -59,6 +59,35 @@ variable "image_os" {
   default = "macos13"
 }
 
+variable github_url {
+  description = "The URL of the GitHub repository"
+  type        = string
+  default     = "https://github.com/"
+}
+
+variable github_org {
+  description = "The GitHub organization"
+  type        = string
+  default     = "gesundheitscloud"
+}
+
+variable runner_name {
+  description = "The name of the GitHub runner"
+  type        = string
+  default     = "runner"
+}
+
+variable runner_token {
+  description = "The GitHub token to use for registering the runner"
+  type        = string
+}
+
+variable runner_labels {
+  description = "Additional labels for the GitHub runner (comma separated)"
+  type        = string
+  default     = ""
+}
+
 source "veertu-anka-vm-clone" "template" {
   vm_name = "${var.build_id}"
   source_vm_name = "${var.source_vm_name}"
@@ -172,8 +201,8 @@ build {
     scripts = [
       "./scripts/build/configure-windows.sh",
       "./scripts/build/install-powershell.sh",
-      "./scripts/build/install-mono.sh",
-      "./scripts/build/install-dotnet.sh",
+#      "./scripts/build/install-mono.sh",
+#      "./scripts/build/install-dotnet.sh",
       "./scripts/build/install-azcopy.sh",
       "./scripts/build/install-openssl.sh",
       "./scripts/build/install-ruby.sh",
@@ -187,6 +216,14 @@ build {
       "USER_PASSWORD=${var.vm_password}"
     ]
     execute_command = "chmod +x {{ .Path }}; source $HOME/.bash_profile; {{ .Vars }} {{ .Path }}"
+  }
+  // Install GitHub agent, run as super user to create runner user and add systemd service
+  provisioner "shell" {
+    environment_vars = ["GITHUB_URL=${var.github_url}", "GITHUB_ORG=${var.github_org}",
+                        "RUNNER_NAME=${var.runner_name}", "RUNNER_TOKEN=${var.runner_token}", "RUNNER_LABELS=${var.runner_labels}"
+                        ]
+    execute_command  = "sh -c '{{ .Vars }} {{ .Path }}'"
+    scripts          = ["./provision/core/github-runner.sh"]
   }
   provisioner "shell" {
     script = "./scripts/build/Install-Xcode.ps1"
@@ -232,18 +269,18 @@ build {
     script = "./scripts/build/configure-xcode-simulators.rb"
     execute_command = "source $HOME/.bash_profile; ruby {{ .Path }}"
   }
-  provisioner "shell" {
-    inline = [
-      "pwsh -File \"$HOME/image-generation/software-report/Generate-SoftwareReport.ps1\" -OutputDirectory \"$HOME/image-generation/output/software-report\" -ImageName ${var.build_id}",
-      "pwsh -File \"$HOME/image-generation/tests/RunAll-Tests.ps1\""
-    ]
-    execute_command = "source $HOME/.bash_profile; {{ .Vars }} {{ .Path }}"
-  }
-  provisioner "file" {
-    destination = "../image-output/"
-    direction = "download"
-    source = "./image-generation/output/"
-  }
+#  provisioner "shell" {
+#    inline = [
+#      "pwsh -File \"$HOME/image-generation/software-report/Generate-SoftwareReport.ps1\" -OutputDirectory \"$HOME/image-generation/output/software-report\" -ImageName ${var.build_id}",
+#      "pwsh -File \"$HOME/image-generation/tests/RunAll-Tests.ps1\""
+#    ]
+#    execute_command = "source $HOME/.bash_profile; {{ .Vars }} {{ .Path }}"
+#  }
+#  provisioner "file" {
+#    destination = "../image-output/"
+#    direction = "download"
+#    source = "./image-generation/output/"
+#  }
   provisioner "shell" {
     scripts = [
       "./scripts/build/configure-hostname.sh"

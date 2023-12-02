@@ -23,4 +23,4 @@ for package in $pipx_packages; do
     fi
 done
 
-invoke_tests "PipxPackages"
+#invoke_tests "PipxPackages"

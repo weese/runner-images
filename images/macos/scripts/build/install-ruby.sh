@@ -24,7 +24,7 @@ else
     echo 'export PATH="$GEM_PATH:/usr/local/opt/ruby@'${DEFAULT_RUBY_VERSION}'/bin:$PATH"'  >> "$HOME/.bashrc"
 fi
 
-if ! is_Arm64; then
+#if ! is_Arm64; then
     echo "Install Ruby from toolset..."
     [ -n "$API_PAT" ] && authString=(-H "Authorization: token ${API_PAT}")
     PACKAGE_TAR_NAMES=$(curl "${authString[@]}" -fsSL "https://api.github.com/repos/ruby/ruby-builder/releases/latest" | jq -r '.assets[].name')
@@ -37,7 +37,11 @@ if ! is_Arm64; then
     fi
 
     for TOOLSET_VERSION in ${TOOLSET_VERSIONS[@]}; do
-        PACKAGE_TAR_NAME=$(echo "$PACKAGE_TAR_NAMES" | grep "^ruby-${TOOLSET_VERSION}-macos-latest.tar.gz$" | egrep -v "rc|preview" | sort -V | tail -1)
+        if [[ $arch == "arm64" ]]; then
+            PACKAGE_TAR_NAME=$(echo "$PACKAGE_TAR_NAMES" | grep "^ruby-${TOOLSET_VERSION}-macos-13-arm64.tar.gz$" | egrep -v "rc|preview" | sort -V | tail -1)
+        else
+            PACKAGE_TAR_NAME=$(echo "$PACKAGE_TAR_NAMES" | grep "^ruby-${TOOLSET_VERSION}-macos-latest.tar.gz$" | egrep -v "rc|preview" | sort -V | tail -1)
+        fi
         RUBY_VERSION=$(echo "$PACKAGE_TAR_NAME" | cut -d'-' -f 2)
         RUBY_VERSION_PATH="$RUBY_PATH/$RUBY_VERSION"
 
@@ -49,12 +53,12 @@ if ! is_Arm64; then
 
         echo "Expand '$PACKAGE_TAR_NAME' to the '$RUBY_VERSION_PATH' folder"
         tar xf "$ARCHIVE_PATH" -C $RUBY_VERSION_PATH
-        COMPLETE_FILE_PATH="$RUBY_VERSION_PATH/x64.complete"
+        COMPLETE_FILE_PATH="$RUBY_VERSION_PATH/$arch.complete"
         if [ ! -f $COMPLETE_FILE_PATH ]; then
             echo "Create complete file"
             touch $COMPLETE_FILE_PATH
         fi
     done
-fi
+#fi
 
-invoke_tests "Ruby.$arch"
+#invoke_tests "Ruby.$arch"

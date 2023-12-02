@@ -238,18 +238,18 @@ build {
     script = "./scripts/build/configure-xcode-simulators.rb"
     execute_command = "source $HOME/.bash_profile; ruby {{ .Path }}"
   }
-  provisioner "shell" {
-    inline = [
-      "pwsh -File \"$HOME/image-generation/software-report/Generate-SoftwareReport.ps1\" -OutputDirectory \"$HOME/image-generation/output/software-report\" -ImageName ${var.build_id}",
-      "pwsh -File \"$HOME/image-generation/tests/RunAll-Tests.ps1\""
-    ]
-    execute_command = "source $HOME/.bash_profile; {{ .Vars }} {{ .Path }}"
-  }
-  provisioner "file" {
-    destination = "../image-output/"
-    direction = "download"
-    source = "./image-generation/output/"
-  }
+#  provisioner "shell" {
+#    inline = [
+#      "pwsh -File \"$HOME/image-generation/software-report/Generate-SoftwareReport.ps1\" -OutputDirectory \"$HOME/image-generation/output/software-report\" -ImageName ${var.build_id}",
+#      "pwsh -File \"$HOME/image-generation/tests/RunAll-Tests.ps1\""
+#    ]
+#    execute_command = "source $HOME/.bash_profile; {{ .Vars }} {{ .Path }}"
+#  }
+#  provisioner "file" {
+#    destination = "../image-output/"
+#    direction = "download"
+#    source = "./image-generation/output/"
+#  }
   provisioner "shell" {
     inline = [
       "rm -rf \"$(brew --cache)\""

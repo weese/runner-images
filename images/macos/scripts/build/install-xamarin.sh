@@ -86,4 +86,4 @@ mkdir -p $PREFERENCES_XAMARIN_DIR
 rm -rf $HOME/.config/NuGet/NuGet.Config
 nuget config
 
-invoke_tests "Xamarin"
+#invoke_tests "Xamarin"

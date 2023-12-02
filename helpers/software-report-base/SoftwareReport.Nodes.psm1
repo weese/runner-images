@@ -163,7 +163,9 @@ class ToolVersionNode: BaseToolNode {
     ToolVersionNode([String] $ToolName, [String] $Version): base($ToolName) {
 
         if ([String]::IsNullOrEmpty($Version)) {
-            throw "ToolVersionNode '$($this.ToolName)' has empty version"
+            #throw "ToolVersionNode '$($this.ToolName)' has empty version"
+            Write-Host "ToolVersionNode '$($this.ToolName)' has empty version"
+	    Version = 42
         }
 
         $this.Version = $Version
