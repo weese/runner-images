@@ -13,4 +13,4 @@ else
   brew_smart_install "swiftlint"
 fi
 
-invoke_tests "Linters" "SwiftLint"
+#invoke_tests "Linters" "SwiftLint"

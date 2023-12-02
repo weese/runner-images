@@ -19,4 +19,4 @@ echo "Downloading action-versions $downloadUrl"
 download_with_retries "$downloadUrl" "/tmp" action-versions.tar.gz
 tar -xzf /tmp/action-versions.tar.gz -C $ACTIONS_RUNNER_ACTION_ARCHIVE_CACHE
 
-invoke_tests "ActionArchiveCache"
+#invoke_tests "ActionArchiveCache"

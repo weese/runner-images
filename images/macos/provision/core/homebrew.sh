@@ -4,9 +4,9 @@ source ~/utils/utils.sh
 
 arch=$(get_arch)
 
-echo "Installing Homebrew..."
-download_with_retries "https://raw.githubusercontent.com/Homebrew/install/master/install.sh" "/tmp" "homebrew-install.sh"
-/bin/bash /tmp/homebrew-install.sh
+# echo "Installing Homebrew..."
+# download_with_retries "https://raw.githubusercontent.com/Homebrew/install/master/install.sh" "/tmp" "homebrew-install.sh"
+# /bin/bash /tmp/homebrew-install.sh
 
 if [[ $arch == "arm64" ]]; then
   /opt/homebrew/bin/brew update
@@ -16,8 +16,8 @@ if [[ $arch == "arm64" ]]; then
   eval "$(/opt/homebrew/bin/brew shellenv)"
 fi
 
-git clone https://github.com/Homebrew/homebrew-cask $(brew --repository)/Library/Taps/homebrew/homebrew-cask --origin=origin --template= --config core.fsmonitor=false --depth 1
-git clone https://github.com/Homebrew/homebrew-core $(brew --repository)/Library/Taps/homebrew/homebrew-core --origin=origin --template= --config core.fsmonitor=false --depth 1
+# git clone https://github.com/Homebrew/homebrew-cask $(brew --repository)/Library/Taps/homebrew/homebrew-cask --origin=origin --template= --config core.fsmonitor=false --depth 1
+# git clone https://github.com/Homebrew/homebrew-core $(brew --repository)/Library/Taps/homebrew/homebrew-core --origin=origin --template= --config core.fsmonitor=false --depth 1
 
 brew tap homebrew/cask
 brew tap homebrew/core

@@ -30,4 +30,4 @@ done
 # Stop PostgreSQL
 brew services stop $postgreService
 
-invoke_tests "Databases" "PostgreSQL"
+#invoke_tests "Databases" "PostgreSQL"

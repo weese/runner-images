@@ -23,7 +23,7 @@ cat > "${Launch_Daemons}/limit.maxfiles.plist" << EOF
 EOF
 
 # Creating script for applying workaround https://developer.apple.com/forums/thread/735798
-
+mkdir -p /Users/runner
 cat > "/Users/runner/limit-maxfiles.sh" << EOF
 #!/bin/bash
 sudo launchctl limit maxfiles 256 unlimited

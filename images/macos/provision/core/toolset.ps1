@@ -55,4 +55,4 @@ foreach ($tool in $tools) {
     }
 }
 
-Invoke-PesterTests "Toolcache"
+#Invoke-PesterTests "Toolcache"

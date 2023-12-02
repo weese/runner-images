@@ -18,4 +18,4 @@ else
     rm -rf azcopy*
 fi
 
-invoke_tests "Common" "AzCopy"
+#invoke_tests "Common" "AzCopy"

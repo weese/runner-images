@@ -13,7 +13,7 @@ Import-Module "$PSScriptRoot/SoftwareReport.Common.psm1" -DisableNameChecking
 Import-Module "$PSScriptRoot/SoftwareReport.Xcode.psm1" -DisableNameChecking
 Import-Module "$PSScriptRoot/SoftwareReport.Android.psm1" -DisableNameChecking
 Import-Module "$PSScriptRoot/SoftwareReport.Java.psm1" -DisableNameChecking
-Import-Module "$PSScriptRoot/SoftwareReport.Xamarin.psm1" -DisableNameChecking
+#Import-Module "$PSScriptRoot/SoftwareReport.Xamarin.psm1" -DisableNameChecking
 Import-Module "$PSScriptRoot/SoftwareReport.Toolcache.psm1" -DisableNameChecking
 Import-Module "$PSScriptRoot/SoftwareReport.Browsers.psm1" -DisableNameChecking
 Import-Module "$PSScriptRoot/SoftwareReport.WebServers.psm1" -DisableNameChecking
@@ -33,7 +33,7 @@ $installedSoftware = $softwareReport.Root.AddHeader("Installed Software")
 
 # Language and Runtime
 $languageAndRuntime = $installedSoftware.AddHeader("Language and Runtime")
-$languageAndRuntime.AddToolVersionsListInline(".NET Core SDK", $(Get-DotnetVersionList), '^\d+\.\d+\.\d')
+#$languageAndRuntime.AddToolVersionsListInline(".NET Core SDK", $(Get-DotnetVersionList), '^\d+\.\d+\.\d')
 $languageAndRuntime.AddToolVersion("Bash", $(Get-BashVersion))
 $languageAndRuntime.AddNodes($(Get-ClangLLVMVersions))
 $languageAndRuntime.AddNodes($(Get-GccVersions))
@@ -43,7 +43,7 @@ $languageAndRuntime.AddToolVersion("Kotlin", $(Get-KotlinVersion))
 if ((-not $os.IsVentura) -and (-not $os.IsVenturaArm64) -and (-not $os.IsSonoma)) {
     $languageAndRuntime.AddToolVersion("Go", $(Get-GoVersion))
 }
-$languageAndRuntime.AddToolVersion("Mono", $(Get-MonoVersion))
+# $languageAndRuntime.AddToolVersion("Mono", $(Get-MonoVersion))
 $languageAndRuntime.AddToolVersion("Node.js", $(Get-NodeVersion))
 if ((-not $os.IsVentura) -and (-not $os.IsVenturaArm64) -and (-not $os.IsSonoma)) {
     $languageAndRuntime.AddToolVersion("MSBuild", $(Get-MSBuildVersion))

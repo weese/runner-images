@@ -1,8 +1,8 @@
 packer {
   required_plugins {
-    veertu-anka = {
-      version = ">= v3.2.0"
-      source = "github.com/veertuinc/veertu-anka"
+    tart = {
+      version = ">= 0.6.0"
+      source  = "github.com/cirruslabs/tart"
     }
   }
 }
@@ -59,19 +59,61 @@ variable "image_os" {
   default = "macos12"
 }
 
-source "veertu-anka-vm-clone" "template" {
-  vm_name = "${var.build_id}"
-  source_vm_name = "${var.source_vm_name}"
-  source_vm_tag = "${var.source_vm_tag}"
-  vcpu_count = "${var.vcpu_count}"
-  ram_size = "${var.ram_size}"
-  stop_vm = "true"
+variable github_url {
+  description = "The URL of the GitHub repository"
+  type        = string
+  default     = "https://github.com/"
 }
 
+variable github_org {
+  description = "The GitHub organization"
+  type        = string
+  default     = "gesundheitscloud"
+}
+
+variable runner_name {
+  description = "The name of the GitHub runner"
+  type        = string
+  default     = "macos12-runner"
+}
+
+variable runner_token {
+  description = "The GitHub token to use for registering the runner"
+  type        = string
+}
+
+variable runner_labels {
+  description = "Additional labels for the GitHub runner (comma separated)"
+  type        = string
+  default     = "macOS12"
+}
+
+#source "veertu-anka-vm-clone" "template" {
+#  vm_name = "${var.build_id}"
+#  source_vm_name = "${var.source_vm_name}"
+#  source_vm_tag = "${var.source_vm_tag}"
+#  vcpu_count = "${var.vcpu_count}"
+#  ram_size = "${var.ram_size}"
+#  stop_vm = "true"
+#}
+
+source "tart-cli" "tart" {
+  vm_base_name = "${var.source_vm_name}"
+  vm_name      = "${var.build_id}"
+  cpu_count    = 4
+  memory_gb    = 8
+  disk_size_gb = 160
+  ssh_username = "admin"
+  ssh_password = "admin"
+  ssh_timeout  = "120s"
+}
+
+
 build {
-  sources = [
-    "source.veertu-anka-vm-clone.template"
-  ]
+#  sources = [
+#    "source.veertu-anka-vm-clone.template"
+#  ]
+  sources = ["source.tart-cli.tart"]
   provisioner "shell" {
     inline = [
       "mkdir ~/image-generation"
@@ -122,6 +164,7 @@ build {
   provisioner "shell" {
     scripts = [
       "./provision/core/xcode-clt.sh",
+      "./provision/core/rosetta.sh",
       "./provision/core/homebrew.sh"
     ]
     execute_command = "chmod +x {{ .Path }}; source $HOME/.bash_profile; {{ .Vars }} {{ .Path }}"
@@ -129,12 +172,12 @@ build {
   provisioner "shell" {
     scripts = [
       "./provision/configuration/configure-tccdb-macos.sh",
-      "./provision/configuration/add-network-interface-detection.sh",
-      "./provision/configuration/autologin.sh",
-      "./provision/configuration/disable-auto-updates.sh",
-      "./provision/configuration/screensaver-off.sh",
-      "./provision/configuration/ntpconf.sh",
-      "./provision/configuration/max-files.sh",
+#      "./provision/configuration/add-network-interface-detection.sh",
+#      "./provision/configuration/autologin.sh",
+#      "./provision/configuration/disable-auto-updates.sh",
+#      "./provision/configuration/screensaver-off.sh",
+#      "./provision/configuration/ntpconf.sh",
+#      "./provision/configuration/max-files.sh",
       "./provision/configuration/shell-change.sh"
     ]
     environment_vars = [
@@ -166,7 +209,6 @@ build {
     scripts = [
       "./provision/core/open_windows_check.sh",
       "./provision/core/powershell.sh",
-      "./provision/core/dotnet.sh",
       "./provision/core/python.sh",
       "./provision/core/azcopy.sh",
       "./provision/core/openssl.sh",
@@ -181,7 +223,15 @@ build {
       "API_PAT=${var.github_api_pat}",
       "USER_PASSWORD=${var.vm_password}"
     ]
-    execute_command = "chmod +x {{ .Path }}; source $HOME/.bash_profile; {{ .Vars }} {{ .Path }}"
+    execute_command = "chmod +x {{ .Path }}; source $HOME/.bash_profile; echo EXEC {{ .Path }}; {{ .Vars }} {{ .Path }}"
+  }
+  // Install GitHub agent, run as super user to create runner user and add systemd service
+  provisioner "shell" {
+    environment_vars = ["GITHUB_URL=${var.github_url}", "GITHUB_ORG=${var.github_org}",
+                        "RUNNER_NAME=${var.runner_name}", "RUNNER_TOKEN=${var.runner_token}", "RUNNER_LABELS=${var.runner_labels}"
+                        ]
+    execute_command  = "sh -c '{{ .Vars }} {{ .Path }}'"
+    scripts          = ["./provision/core/github-runner.sh"]
   }
   provisioner "shell" {
     script = "./provision/core/xcode.ps1"
@@ -210,18 +260,18 @@ build {
       "./provision/core/haskell.sh",
       "./provision/core/cocoapods.sh",
       "./provision/core/android-toolsets.sh",
-      "./provision/core/xamarin.sh",
+#      "./provision/core/xamarin.sh",
       "./provision/core/vsmac.sh",
       "./provision/core/nvm.sh",
       "./provision/core/apache.sh",
       "./provision/core/nginx.sh",
       "./provision/core/postgresql.sh",
-      "./provision/core/audiodevice.sh",
-      "./provision/core/vcpkg.sh",
+#      "./provision/core/audiodevice.sh",
+#      "./provision/core/vcpkg.sh",
       "./provision/core/miniconda.sh",
       "./provision/core/safari.sh",
       "./provision/core/chrome.sh",
-      "./provision/core/edge.sh",
+#      "./provision/core/edge.sh",
       "./provision/core/firefox.sh",
       "./provision/core/pypy.sh",
       "./provision/core/pipx-packages.sh",
@@ -248,18 +298,18 @@ build {
       script = "./provision/core/fix-xcode-simulators.ps1"
       execute_command = "chmod +x {{ .Path }}; {{ .Vars }} pwsh -f {{ .Path }}"
   }
-  provisioner "shell" {
-    inline = [
-      "pwsh -File \"$HOME/image-generation/software-report/SoftwareReport.Generator.ps1\" -OutputDirectory \"$HOME/image-generation/output/software-report\" -ImageName ${var.build_id}",
-      "pwsh -File \"$HOME/image-generation/tests/RunAll-Tests.ps1\""
-    ]
-    execute_command = "source $HOME/.bash_profile; {{ .Vars }} {{ .Path }}"
-  }
-  provisioner "file" {
-    destination = "../image-output/"
-    direction = "download"
-    source = "./image-generation/output/"
-  }
+#  provisioner "shell" {
+#    inline = [
+#      "pwsh -File \"$HOME/image-generation/software-report/SoftwareReport.Generator.ps1\" -OutputDirectory \"$HOME/image-generation/output/software-report\" -ImageName ${var.build_id}",
+#      "pwsh -File \"$HOME/image-generation/tests/RunAll-Tests.ps1\""
+#    ]
+#    execute_command = "source $HOME/.bash_profile; {{ .Vars }} {{ .Path }}"
+#  }
+#  provisioner "file" {
+#    destination = "../image-output/"
+#    direction = "download"
+#    source = "./image-generation/output/"
+#  }
   provisioner "shell" {
     scripts = [
       "./provision/configuration/configure-hostname.sh",

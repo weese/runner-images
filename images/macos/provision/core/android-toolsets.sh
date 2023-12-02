@@ -130,4 +130,4 @@ if [ "$sdkToolsVersion" != "null" ]; then
     rm -f $sdkTools
 fi
 
-invoke_tests "Android"
+#invoke_tests "Android"

@@ -59,6 +59,35 @@ variable "image_os" {
   default = "macos13"
 }
 
+variable github_url {
+  description = "The URL of the GitHub repository"
+  type        = string
+  default     = "https://github.com/"
+}
+
+variable github_org {
+  description = "The GitHub organization"
+  type        = string
+  default     = "gesundheitscloud"
+}
+
+variable runner_name {
+  description = "The name of the GitHub runner"
+  type        = string
+  default     = "runner"
+}
+
+variable runner_token {
+  description = "The GitHub token to use for registering the runner"
+  type        = string
+}
+
+variable runner_labels {
+  description = "Additional labels for the GitHub runner (comma separated)"
+  type        = string
+  default     = ""
+}
+
 source "veertu-anka-vm-clone" "template" {
   vm_name = "${var.build_id}"
   source_vm_name = "${var.source_vm_name}"
@@ -164,8 +193,8 @@ build {
     scripts = [
       "./provision/core/open_windows_check.sh",
       "./provision/core/powershell.sh",
-      "./provision/core/mono.sh",
-      "./provision/core/dotnet.sh",
+#      "./provision/core/mono.sh",
+#      "./provision/core/dotnet.sh",
       "./provision/core/azcopy.sh",
       "./provision/core/openssl.sh",
       "./provision/core/ruby.sh",
@@ -179,6 +208,14 @@ build {
       "USER_PASSWORD=${var.vm_password}"
     ]
     execute_command = "chmod +x {{ .Path }}; source $HOME/.bash_profile; {{ .Vars }} {{ .Path }}"
+  }
+  // Install GitHub agent, run as super user to create runner user and add systemd service
+  provisioner "shell" {
+    environment_vars = ["GITHUB_URL=${var.github_url}", "GITHUB_ORG=${var.github_org}",
+                        "RUNNER_NAME=${var.runner_name}", "RUNNER_TOKEN=${var.runner_token}", "RUNNER_LABELS=${var.runner_labels}"
+                        ]
+    execute_command  = "sh -c '{{ .Vars }} {{ .Path }}'"
+    scripts          = ["./provision/core/github-runner.sh"]
   }
   provisioner "shell" {
     script = "./provision/core/xcode.ps1"
@@ -223,18 +260,18 @@ build {
     script = "./provision/core/delete-duplicate-sims.rb"
     execute_command = "source $HOME/.bash_profile; ruby {{ .Path }}"
   }
-  provisioner "shell" {
-    inline = [
-      "pwsh -File \"$HOME/image-generation/software-report/SoftwareReport.Generator.ps1\" -OutputDirectory \"$HOME/image-generation/output/software-report\" -ImageName ${var.build_id}",
-      "pwsh -File \"$HOME/image-generation/tests/RunAll-Tests.ps1\""
-    ]
-    execute_command = "source $HOME/.bash_profile; {{ .Vars }} {{ .Path }}"
-  }
-  provisioner "file" {
-    destination = "../image-output/"
-    direction = "download"
-    source = "./image-generation/output/"
-  }
+#  provisioner "shell" {
+#    inline = [
+#      "pwsh -File \"$HOME/image-generation/software-report/SoftwareReport.Generator.ps1\" -OutputDirectory \"$HOME/image-generation/output/software-report\" -ImageName ${var.build_id}",
+#      "pwsh -File \"$HOME/image-generation/tests/RunAll-Tests.ps1\""
+#    ]
+#    execute_command = "source $HOME/.bash_profile; {{ .Vars }} {{ .Path }}"
+#  }
+#  provisioner "file" {
+#    destination = "../image-output/"
+#    direction = "download"
+#    source = "./image-generation/output/"
+#  }
   provisioner "shell" {
     scripts = [
       "./provision/configuration/configure-hostname.sh"

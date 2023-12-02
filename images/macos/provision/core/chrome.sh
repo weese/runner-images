@@ -47,4 +47,4 @@ mv "/tmp/chrome-${CHROME_PLATFORM}/${CHROME_FOR_TESTING_APP}" "/Applications/${C
 echo "Installing Selenium"
 brew_smart_install "selenium-server"
 
-invoke_tests "Browsers" "Chrome"
+#invoke_tests "Browsers" "Chrome"

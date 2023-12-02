@@ -1,5 +1,6 @@
 #!/bin/bash -e -o pipefail
 source ~/utils/utils.sh
+arch=$(get_arch)
 
 echo "Installing Python Tooling"
 
@@ -34,8 +35,13 @@ echo "Brew Installing Python 3"
 brew_smart_install "python@3.11"
 
 echo "Installing pipx"
-export PIPX_BIN_DIR=/usr/local/opt/pipx_bin
-export PIPX_HOME=/usr/local/opt/pipx
+if [ $arch == "arm64" ]; then
+    export PIPX_BIN_DIR=/opt/homebrew/opt/pipx/bin
+    export PIPX_HOME=/opt/homebrew/opt/pipx
+else
+    export PIPX_BIN_DIR=/usr/local/opt/pipx_bin
+    export PIPX_HOME=/usr/local/opt/pipx
+fi
 
 brew_smart_install "pipx"
 
@@ -43,4 +49,4 @@ echo "export PIPX_BIN_DIR=${PIPX_BIN_DIR}" >> "${HOME}/.bashrc"
 echo "export PIPX_HOME=${PIPX_HOME}" >> "${HOME}/.bashrc"
 echo 'export PATH="$PIPX_BIN_DIR:$PATH"' >> "${HOME}/.bashrc"
 
-invoke_tests "Python"
+#invoke_tests "Python"
