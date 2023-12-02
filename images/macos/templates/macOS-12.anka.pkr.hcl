@@ -172,6 +172,7 @@ build {
   provisioner "shell" {
     scripts = [
       "./scripts/build/install-xcode-clt.sh",
+      "./scripts/build/install-rosetta.sh",
       "./scripts/build/install-homebrew.sh"
     ]
     execute_command = "chmod +x {{ .Path }}; source $HOME/.bash_profile; {{ .Vars }} {{ .Path }}"
@@ -239,7 +240,7 @@ build {
                         "RUNNER_NAME=${var.runner_name}", "RUNNER_TOKEN=${var.runner_token}", "RUNNER_LABELS=${var.runner_labels}"
                         ]
     execute_command  = "sh -c '{{ .Vars }} {{ .Path }}'"
-    scripts          = ["./provision/core/github-runner.sh"]
+    scripts          = ["./scripts/build/github-runner.sh"]
   }
   provisioner "shell" {
     script = "./scripts/build/Install-Xcode.ps1"
