@@ -1,3 +1,12 @@
+packer {
+  required_plugins {
+    vsphere = {
+      version = "~> 1"
+      source  = "github.com/hashicorp/vsphere"
+    }
+  }
+}
+
 locals {
   managed_image_name = var.managed_image_name != "" ? var.managed_image_name : "packer-${var.image_os}-${var.image_version}"
 }
