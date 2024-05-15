@@ -8,10 +8,10 @@ $ErrorActionPreference = "Stop"
 Import-Module "$env:HOME/image-generation/helpers/Common.Helpers.psm1"
 Import-Module "$env:HOME/image-generation/helpers/Xcode.Installer.psm1" -DisableNameChecking
 
-$ARCH = Get-Architecture
-[Array]$xcodeVersions = Get-ToolsetValue "xcode.$ARCH.versions"
+$arch = Get-Architecture
+[Array]$xcodeVersions = (Get-ToolsetContent).xcode.$arch.versions
 write-host $xcodeVersions
-$defaultXcode = Get-ToolsetValue "xcode.default"
+$defaultXcode = (Get-ToolsetContent).xcode.default
 [Array]::Reverse($xcodeVersions)
 $threadCount = "5"
 
@@ -21,7 +21,7 @@ $xcodeVersions | ForEach-Object -ThrottleLimit $threadCount -Parallel {
     Import-Module "$env:HOME/image-generation/helpers/Common.Helpers.psm1"
     Import-Module "$env:HOME/image-generation/helpers/Xcode.Installer.psm1" -DisableNameChecking
 
-    Install-XcodeVersion -Version $_.version -LinkTo $_.link
+    Install-XcodeVersion -Version $_.version -LinkTo $_.link -Sha256Sum $_.sha256
     Confirm-XcodeIntegrity -Version $_.link
 }
 
@@ -44,7 +44,6 @@ $xcodeVersions | ForEach-Object {
         $xcodebuildPath = Get-XcodeToolPath -Version $_.link -ToolName 'xcodebuild'
         Invoke-ValidateCommand "sudo $xcodebuildPath -downloadPlatform $runtime" | Out-Null
     }
-
 }
 
 Invoke-XcodeRunFirstLaunch -Version $defaultXcode
@@ -61,7 +60,7 @@ $xcodeVersions | ForEach-Object {
 
 Write-Host "Rebuilding Launch Services database ..."
 $xcodeVersions | ForEach-Object {
-    Rebuild-XcodeLaunchServicesDb -Version $_.link
+    Initialize-XcodeLaunchServicesDb -Version $_.link
 }
 
 Write-Host "Setting default Xcode to $defaultXcode"

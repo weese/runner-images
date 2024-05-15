@@ -11,7 +11,7 @@ $downloadUrl = Resolve-GithubReleaseAssetUrl `
     -Version "latest" `
     -UrlMatchPattern "Git-*-64-bit.exe"
 
-$externalHash = Get-GithubReleaseAssetHash `
+$externalHash = Get-ChecksumFromGithubRelease `
     -Repo "git-for-windows/git" `
     -Version "latest" `
     -FileName (Split-Path $downloadUrl -Leaf) `
@@ -35,9 +35,12 @@ Install-Binary `
 Update-Environment
 
 git config --system --add safe.directory "*"
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Failed to configure safe.directory for Git with exit code $LASTEXITCODE"
+}
 
 # Disable GCM machine-wide
-[Environment]::SetEnvironmentVariable("GCM_INTERACTIVE", "Never", [System.EnvironmentVariableTarget]::Machine)
+[Environment]::SetEnvironmentVariable("GCM_INTERACTIVE", "Never", "Machine")
 
 # Add to PATH
 Add-MachinePathItem "C:\Program Files\Git\bin"

@@ -13,11 +13,15 @@ Describe "WindowsFeatures" {
     it "Check WSL is on path" {
         (Get-Command -Name 'wsl') | Should -BeTrue
     }
+
+    it "Check WLAN service is stopped" {
+        (Get-Service -Name wlansvc).Status | Should -Be "Stopped"
+    }
 }
 
 Describe "DiskSpace" {
     It "The image has enough disk space"{
-        $availableSpaceMB =  [math]::Round((Get-PSDrive -Name C).Free / 1MB)
+        $availableSpaceMB = [math]::Round((Get-PSDrive -Name C).Free / 1MB)
         $minimumFreeSpaceMB = 18 * 1024
 
         $availableSpaceMB | Should -BeGreaterThan $minimumFreeSpaceMB
@@ -26,7 +30,7 @@ Describe "DiskSpace" {
 
 Describe "DynamicPorts" {
     It "Test TCP dynamicport start=49152 num=16384" {
-        $tcpPorts = Get-NetTCPSetting | Where-Object {$_.SettingName -ne "Automatic"} | Where-Object {
+        $tcpPorts = Get-NetTCPSetting | Where-Object { $_.SettingName -ne "Automatic" } | Where-Object {
             $_.DynamicPortRangeStartPort -ne 49152 -or $_.DynamicPortRangeNumberOfPorts -ne 16384
         }
 
@@ -52,7 +56,7 @@ Describe "GDIProcessHandleQuota" {
 }
 
 Describe "Test Signed Drivers" {
-    It "bcdedit testsigning should be Yes"{
+    It "bcdedit testsigning should be Yes" {
         "$(bcdedit)" | Should -Match "testsigning\s+Yes"
     }
 }
@@ -64,7 +68,7 @@ Describe "Windows Updates" {
 
     $testCases = Get-WindowsUpdateStates | Sort-Object Title | ForEach-Object {
         @{
-            Title  = $_.Title
+            Title = $_.Title
             State = $_.State
         }
     }

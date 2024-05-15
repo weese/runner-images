@@ -18,8 +18,8 @@ else
 fi
 
 if ! is_Arm64; then
-  # Most of buildsystems and scripts look up ssl here
-  sudo ln -sf $(brew --cellar openssl@1.1)/1.1* /usr/local/opt/openssl
+  # Most of build systems and scripts look up ssl here
+  ln -sf $(brew --cellar openssl@1.1)/1.1* /usr/local/opt/openssl
 fi
 
 #invoke_tests "OpenSSL"

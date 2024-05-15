@@ -7,19 +7,27 @@
 $ErrorActionPreference = "Stop"
 
 $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName())
-$null = New-Item -ItemType Directory -Path $tempDir -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Path $tempDir -Force -ErrorAction SilentlyContinue | Out-Null
 try {
     $originalValue = [Net.ServicePointManager]::SecurityProtocol
     [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 
     $metadata = Invoke-RestMethod https://raw.githubusercontent.com/PowerShell/PowerShell/master/tools/metadata.json
-    $release = $metadata.LTSReleaseTag[0] -replace '^v'
-    $downloadUrl = "https://github.com/PowerShell/PowerShell/releases/download/v${release}/PowerShell-${release}-win-x64.msi"
+    $pwshMajorMinor = (Get-ToolsetContent).pwsh.version
 
-    $hashUrl = "https://github.com/PowerShell/PowerShell/releases/download/v${release}/hashes.sha256"
-    $expectedSHA256Sum = (Invoke-RestMethod -Uri $hashURL).ToString().Split("`n").Where({ $_ -ilike "*PowerShell-${Release}-win-x64.msi*" }).Split(' ')[0]
+    $releases = $metadata.LTSReleaseTag -replace '^v'
+    foreach ($release in $releases) {
+        if ($release -like "${pwshMajorMinor}*") {
+            $downloadUrl = "https://github.com/PowerShell/PowerShell/releases/download/v${release}/PowerShell-${release}-win-x64.msi"
+            break
+        }
+    }
 
-    Install-Binary -Url $downloadUrl -ExpectedSHA256Sum $expectedSHA256Sum
+    $installerName = Split-Path $downloadUrl -Leaf
+    $externalHash = Get-ChecksumFromUrl -Type "SHA256" `
+        -Url ($downloadUrl -replace $installerName, "hashes.sha256") `
+        -FileName $installerName
+    Install-Binary -Url $downloadUrl -ExpectedSHA256Sum $externalHash
 } finally {
     # Restore original value
     [Net.ServicePointManager]::SecurityProtocol = $originalValue
@@ -30,6 +38,6 @@ try {
 # While the update check happens during the first session in a given 24-hour period, for performance reasons,
 # the notification will only be shown on the start of subsequent sessions.
 # Also for performance reasons, the check will not start until at least 3 seconds after the session begins.
-[System.Environment]::SetEnvironmentVariable("POWERSHELL_UPDATECHECK", "Off", [System.EnvironmentVariableTarget]::Machine)
+[Environment]::SetEnvironmentVariable("POWERSHELL_UPDATECHECK", "Off", "Machine")
 
 Invoke-PesterTests -TestFile "Tools" -TestName "PowerShell Core"

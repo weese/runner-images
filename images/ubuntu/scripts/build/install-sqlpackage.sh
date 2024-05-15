@@ -9,11 +9,15 @@ source $HELPER_SCRIPTS/install.sh
 source $HELPER_SCRIPTS/os.sh
 
 # Install libssl1.1 dependency
-if isUbuntu22; then
-    libssl_deb_path=$(download_with_retry "http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.20_amd64.deb")
-    libssl_hash="0b3251aee55db6e20d02f4b9a2b703c9874a85ab6a20b12f4870f52f91633d37"
-    use_checksum_comparison "$libssl_deb_path" "$libssl_hash"
-    dpkg -i "$libssl_deb_path"
+if is_ubuntu22; then
+    focal_list=/etc/apt/sources.list.d/focal-security.list
+    echo "deb http://archive.ubuntu.com/ubuntu/ focal-security main" | tee "${focal_list}"
+    apt-get update --quiet
+
+    apt-get install --no-install-recommends --yes libssl1.1
+
+    rm "${focal_list}"
+    apt-get update --quiet
 fi
 
 # Install SqlPackage

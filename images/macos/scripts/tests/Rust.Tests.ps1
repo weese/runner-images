@@ -1,7 +1,8 @@
 Import-Module "$PSScriptRoot/../helpers/Common.Helpers.psm1"
+
 $os = Get-OSVersion
 
-Describe "Rust" {
+Describe "Rust" -Skip:($os.IsBigSur) {
     Context "Rust" {
         It "Rustup is installed" {
             "rustup --version" | Should -ReturnZeroExitCode

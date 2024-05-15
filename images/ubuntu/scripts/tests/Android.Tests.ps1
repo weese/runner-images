@@ -1,34 +1,4 @@
 Describe "Android" {
-    BeforeAll {
-        function Test-AndroidPackage {
-            <#
-            .SYNOPSIS
-                This function tests existance of an Android package.
-
-            .DESCRIPTION
-                The Test-AndroidPackage function is used to test an existance of Android package in ANDROID_HOME path.
-
-            .PARAMETER PackageName
-                The name of the Android package to test.
-
-            .EXAMPLE
-                Test-AndroidPackage
-
-                This command tests the Android package.
-
-            #>
-            param (
-                [Parameter(Mandatory=$true)]
-                [string] $PackageName
-            )
-
-            # Convert 'cmake;3.6.4111459' -> 'cmake/3.6.4111459'
-            $PackageName = $PackageName.Replace(";", "/")
-            $targetPath = Join-Path $env:ANDROID_HOME $PackageName
-            $targetPath | Should -Exist
-        }
-    }
-
     function Get-AndroidPackages {
         <#
         .SYNOPSIS
@@ -77,9 +47,9 @@ Describe "Android" {
     }
 
     $androidSdkManagerPackages = Get-AndroidPackages
-    [int]$platformMinVersion = Get-ToolsetValue "android.platform_min_version"
-    [version]$buildToolsMinVersion = Get-ToolsetValue "android.build_tools_min_version"
-    [array]$ndkVersions = Get-ToolsetValue "android.ndk.versions"
+    [int]$platformMinVersion = (Get-ToolsetContent).android.platform_min_version
+    [version]$buildToolsMinVersion = (Get-ToolsetContent).android.build_tools_min_version
+    [array]$ndkVersions = (Get-ToolsetContent).android.ndk.versions
     $ndkFullVersions = $ndkVersions |
         ForEach-Object { (Get-ChildItem "/usr/local/lib/android/sdk/ndk/${_}.*" |
         Select-Object -Last 1).Name } | ForEach-Object { "ndk/${_}" }
@@ -102,19 +72,15 @@ Describe "Android" {
         $platformsInstalled,
         $buildTools,
         $ndkFullVersions,
-        (Get-ToolsetValue "android.extra_list" | ForEach-Object { "extras/${_}" }),
-        (Get-ToolsetValue "android.addon_list" | ForEach-Object { "add-ons/${_}" }),
-        (Get-ToolsetValue "android.additional_tools" | ForEach-Object { "${_}" })
+        ((Get-ToolsetContent).android.extra_list | ForEach-Object { "extras/${_}" }),
+        ((Get-ToolsetContent).android.addon_list | ForEach-Object { "add-ons/${_}" }),
+        ((Get-ToolsetContent).android.additional_tools | ForEach-Object { "${_}" })
     )
 
     $androidPackages = $androidPackages | ForEach-Object { $_ }
 
     Context "SDKManagers" {
         $testCases = @(
-            @{
-                PackageName = "SDK tools"
-                Sdkmanager = "$env:ANDROID_HOME/tools/bin/sdkmanager"
-            },
             @{
                 PackageName = "Command-line tools"
                 Sdkmanager = "$env:ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
@@ -130,8 +96,10 @@ Describe "Android" {
         $testCases = $androidPackages | ForEach-Object { @{ PackageName = $_ } }
 
         It "<PackageName>" -TestCases $testCases {
-            param ([string] $PackageName)
-            Test-AndroidPackage $PackageName
+            # Convert 'cmake;3.6.4111459' -> 'cmake/3.6.4111459'
+            $PackageName = $PackageName.Replace(";", "/")
+            $targetPath = Join-Path $env:ANDROID_HOME $PackageName
+            $targetPath | Should -Exist
         }
     }
 }

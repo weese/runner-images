@@ -5,17 +5,19 @@
 ################################################################################
 
 source ~/utils/utils.sh
-arch=$(get_arch)
 
-# Check MacOS architecture and if ARM install using brew
-if [ "$arch" == "arm64" ]; then
-    brew_smart_install azcopy
+if is_Arm64; then
+    url="https://aka.ms/downloadazcopy-v10-mac-arm64"
 else
-    archive_path=$(download_with_retry "https://aka.ms/downloadazcopy-v10-mac")
-    unzip -qq "$archive_path" -d /tmp/azcopy
-    extract_path=$(echo /tmp/azcopy/azcopy*)
-    cp "$extract_path/azcopy" "/usr/local/bin/azcopy"
-    chmod +x "/usr/local/bin/azcopy"
+    url="https://aka.ms/downloadazcopy-v10-mac"
 fi
+
+# Install AzCopy
+archive_path=$(download_with_retry ${url})
+unzip -qq $archive_path -d /tmp/azcopy
+extract_path=$(echo /tmp/azcopy/azcopy*)
+cp $extract_path/azcopy /usr/local/bin/azcopy
+chmod +x /usr/local/bin/azcopy
+
 
 #invoke_tests "Common" "AzCopy"

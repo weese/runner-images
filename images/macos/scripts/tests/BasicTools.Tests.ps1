@@ -1,13 +1,14 @@
 Import-Module "$PSScriptRoot/../helpers/Common.Helpers.psm1"
+
 $os = Get-OSVersion
 
-Describe "Azure CLI" {
+Describe "Azure CLI" -Skip:($os.IsBigSur) {
     It "Azure CLI" {
         "az -v" | Should -ReturnZeroExitCode
     }
 }
 
-Describe "Azure DevOps CLI" {
+Describe "Azure DevOps CLI" -Skip:($os.IsBigSur) {
     It "az devops" {
         "az devops -h" | Should -ReturnZeroExitCode
     }
@@ -122,7 +123,7 @@ Describe "Aliyun CLI" -Skip:($os.IsMonterey -or $os.IsVentura -or $os.IsSonoma) 
     }
 }
 
-Describe "Julia" {
+Describe "Julia" -Skip:($os.IsVentura -or $os.IsSonoma) {
     It "Julia" {
         "julia --version" | Should -ReturnZeroExitCode
     }
@@ -158,7 +159,7 @@ Describe "virtualbox" -Skip:($os.IsBigSur -or $os.IsVentura -or $os.IsSonoma) {
     }
 }
 
-Describe "R" {
+Describe "R" -Skip:($os.IsVentura -or $os.IsSonoma -or $os.IsBigSur) {
     It "R" {
         "R --version" | Should -ReturnZeroExitCode
     }
@@ -173,7 +174,7 @@ Describe "Homebrew" {
 Describe "Kotlin" {
     $kotlinPackages = @("kapt", "kotlin", "kotlinc", "kotlinc-jvm", "kotlin-dce-js")
 
-    It "<toolName> is available" -TestCases ($kotlinPackages | ForEach-Object { @{ toolName = $_ } }) { 
+    It "<toolName> is available" -TestCases ($kotlinPackages | ForEach-Object { @{ toolName = $_ } }) {
         "$toolName -version" | Should -ReturnZeroExitCode
     }
 }
@@ -190,7 +191,7 @@ Describe "yq" {
     }
 }
 
-Describe "imagemagick" -Skip:($os.IsVentura -or $os.IsSonoma) {
+Describe "imagemagick" -Skip:($os.IsBigSur -or $os.IsVentura -or $os.IsSonoma) {
     It "imagemagick" {
         "magick -version" | Should -ReturnZeroExitCode
     }

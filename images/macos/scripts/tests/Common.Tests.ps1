@@ -10,7 +10,7 @@ Describe ".NET" {
 }
 
 Describe "GCC" {
-    $testCases = Get-ToolsetValue -KeyPath gcc.versions | ForEach-Object { @{Version = $_ } }
+    $testCases = (Get-ToolsetContent).gcc.versions | ForEach-Object { @{Version = $_ } }
 
     It "GCC <Version>" -TestCases $testCases {
         param (
@@ -33,7 +33,7 @@ Describe "GCC" {
     }
 }
 
-Describe "vcpkg" -Skip:($os.IsVenturaArm64 -or $os.IsSonomaArm64) {
+Describe "vcpkg" -Skip:($os.IsVenturaArm64 -or $os.IsSonomaArm64 -or $os.IsSonoma) {
     It "vcpkg" {
         "vcpkg version" | Should -ReturnZeroExitCode
     }
@@ -43,7 +43,7 @@ Describe "AWS" {
     It "AWS CLI" {
         "aws --version" | Should -ReturnZeroExitCode
     }
-    It "AWS SAM CLI" {
+    It "AWS SAM CLI" -Skip:($os.IsBigSur) {
         "sam --version" | Should -ReturnZeroExitCode
     }
 
@@ -60,7 +60,7 @@ Describe "AzCopy" {
 
 Describe "Miniconda" -Skip:($os.IsVentura -or $os.IsSonoma) {
     It "Conda" {
-        Get-EnvironmentVariable "CONDA" | Should -Not -BeNullOrEmpty
+        [System.Environment]::GetEnvironmentVariable("CONDA") | Should -Not -BeNullOrEmpty
         $condaBinPath = Join-Path $env:CONDA "bin" "conda"
         "$condaBinPath --version" | Should -ReturnZeroExitCode
     }
@@ -79,8 +79,8 @@ Describe "CocoaPods" {
 }
 
 Describe "VSMac" -Skip:($os.IsVentura -or $os.IsSonoma) {
-    $vsMacVersions = Get-ToolsetValue "xamarin.vsmac.versions"
-    $defaultVSMacVersion = Get-ToolsetValue "xamarin.vsmac.default"
+    $vsMacVersions = (Get-ToolsetContent).xamarin.vsmac.versions
+    $defaultVSMacVersion = (Get-ToolsetContent).xamarin.vsmac.default
 
     $testCases = $vsMacVersions | ForEach-Object {
         $vsPath = "/Applications/Visual Studio $_.app"
