@@ -54,9 +54,9 @@ for module in ${psModules[@]}; do
 done
 
 # Fix permission root => runner after installing powershell for arm64 arch
-# if [[ $arch == "arm64" ]]; then
-#     sudo chown -R $USER ~/.local ~/.cache ~/.config
-# fi
+if [[ $arch == "arm64" ]]; then
+    sudo chown -R $USER ~/.local ~/.cache ~/.config
+fi
 
 # A dummy call to initialize .IdentityService directory
 pwsh -command "& {Import-Module Az}"
