@@ -19,16 +19,18 @@ source $CARGO_HOME/env
 # Install common tools
 rustup component add rustfmt clippy
 
-if isUbuntu22; then
+if is_ubuntu22; then
     cargo install bindgen-cli cbindgen cargo-audit cargo-outdated
-else
+fi
+
+if is_ubuntu20; then
     cargo install --locked bindgen-cli cbindgen cargo-audit cargo-outdated
 fi
 
 # Cleanup Cargo cache
 rm -rf ${CARGO_HOME}/registry/*
 
-# Update /etc/environemnt
-prependEtcEnvironmentPath '$HOME/.cargo/bin'
+# Update /etc/environment
+prepend_etc_environment_path '$HOME/.cargo/bin'
 
 invoke_tests "Tools" "Rust"

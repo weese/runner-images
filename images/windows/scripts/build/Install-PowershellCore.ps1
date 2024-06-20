@@ -7,14 +7,21 @@
 $ErrorActionPreference = "Stop"
 
 $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName())
-$null = New-Item -ItemType Directory -Path $tempDir -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Path $tempDir -Force -ErrorAction SilentlyContinue | Out-Null
 try {
     $originalValue = [Net.ServicePointManager]::SecurityProtocol
     [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 
     $metadata = Invoke-RestMethod https://raw.githubusercontent.com/PowerShell/PowerShell/master/tools/metadata.json
-    $release = $metadata.LTSReleaseTag[0] -replace '^v'
-    $downloadUrl = "https://github.com/PowerShell/PowerShell/releases/download/v${release}/PowerShell-${release}-win-x64.msi"
+    $pwshMajorMinor = (Get-ToolsetContent).pwsh.version
+
+    $releases = $metadata.LTSReleaseTag -replace '^v'
+    foreach ($release in $releases) {
+        if ($release -like "${pwshMajorMinor}*") {
+            $downloadUrl = "https://github.com/PowerShell/PowerShell/releases/download/v${release}/PowerShell-${release}-win-x64.msi"
+            break
+        }
+    }
 
     $installerName = Split-Path $downloadUrl -Leaf
     $externalHash = Get-ChecksumFromUrl -Type "SHA256" `

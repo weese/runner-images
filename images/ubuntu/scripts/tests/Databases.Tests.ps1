@@ -1,10 +1,10 @@
-Describe "MongoDB" -Skip:(Test-IsUbuntu22) {
+Describe "MongoDB" -Skip:(-not (Test-IsUbuntu20)) {
     It "<ToolName>" -TestCases @(
         @{ ToolName = "mongo" }
         @{ ToolName = "mongod" }
     ) {
         $toolsetVersion = (Get-ToolsetContent).mongodb.version
-        (&$ToolName --version)[2].Split('"')[-2] | Should -BeLike "$toolsetVersion*"
+        (& $ToolName --version)[2].Split('"')[-2] | Should -BeLike "$toolsetVersion*"
     }
 }
 

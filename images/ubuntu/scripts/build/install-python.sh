@@ -10,18 +10,24 @@ source $HELPER_SCRIPTS/etc-environment.sh
 source $HELPER_SCRIPTS/os.sh
 
 # Install Python, Python 3, pip, pip3
-apt-get install -y --no-install-recommends python3 python3-dev python3-pip python3-venv
+apt-get install --no-install-recommends python3 python3-dev python3-pip python3-venv
 
 # Install pipx
 # Set pipx custom directory
 export PIPX_BIN_DIR=/opt/pipx_bin
 export PIPX_HOME=/opt/pipx
-python3 -m pip install pipx
-python3 -m pipx ensurepath
+if is_ubuntu24; then
+    apt-get install --no-install-recommends pipx
+    pipx ensurepath
+else
+    python3 -m pip install pipx
+    python3 -m pipx ensurepath
+fi
 # Update /etc/environment
-setEtcEnvironmentVariable "PIPX_BIN_DIR" $PIPX_BIN_DIR
-setEtcEnvironmentVariable "PIPX_HOME" $PIPX_HOME
-prependEtcEnvironmentPath $PIPX_BIN_DIR
+set_etc_environment_variable "PIPX_BIN_DIR" $PIPX_BIN_DIR
+set_etc_environment_variable "PIPX_HOME" $PIPX_HOME
+prepend_etc_environment_path $PIPX_BIN_DIR
+
 # Test pipx
 if ! command -v pipx; then
     echo "pipx was not installed or not found on PATH"
@@ -29,6 +35,6 @@ if ! command -v pipx; then
 fi
 
 # Adding this dir to PATH will make installed pip commands are immediately available.
-prependEtcEnvironmentPath '$HOME/.local/bin'
+prepend_etc_environment_path '$HOME/.local/bin'
 
 invoke_tests "Tools" "Python"
