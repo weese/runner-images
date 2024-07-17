@@ -135,7 +135,7 @@ variable runner_labels {
 source "tart-cli" "tart" {
   vm_base_name = "${var.source_vm_name}"
   vm_name      = "${var.build_id}"
-  cpu_count    = 4
+  cpu_count    = "${var.vcpu_count}"
   memory_gb    = 8
   disk_size_gb = 160
   ssh_username = "admin"

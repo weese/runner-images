@@ -1,8 +1,8 @@
 packer {
   required_plugins {
-    veertu-anka = {
-      version = ">= v3.2.0"
-      source  = "github.com/veertuinc/veertu-anka"
+    tart = {
+      version = ">= 0.6.0"
+      source  = "github.com/cirruslabs/tart"
     }
   }
 }
@@ -11,14 +11,14 @@ locals {
   image_folder = "/Users/${var.vm_username}/image-generation"
 }
 
-variable "builder_type" {
-  type = string
-  default = "veertu-anka-vm-clone"
-  validation {
-    condition = contains(["veertu-anka-vm-clone", "null"], var.builder_type)
-    error_message = "The builder_type value must be one of [veertu-anka-vm-clone, null]."
-  }
-}
+// variable "builder_type" {
+//   type = string
+//   default = "veertu-anka-vm-clone"
+//   validation {
+//     condition = contains(["veertu-anka-vm-clone", "null"], var.builder_type)
+//     error_message = "The builder_type value must be one of [veertu-anka-vm-clone, null]."
+//   }
+// }
 
 variable "source_vm_name" {
   type = string
@@ -83,14 +83,14 @@ variable "image_os" {
   default = "macos13"
 }
 
-source "veertu-anka-vm-clone" "template" {
-  vm_name        = "${var.build_id}"
-  source_vm_name = "${var.source_vm_name}"
-  source_vm_tag  = "${var.source_vm_tag}"
-  vcpu_count     = "${var.vcpu_count}"
-  ram_size       = "${var.ram_size}"
-  stop_vm        = "true"
-}
+// source "veertu-anka-vm-clone" "template" {
+//   vm_name        = "${var.build_id}"
+//   source_vm_name = "${var.source_vm_name}"
+//   source_vm_tag  = "${var.source_vm_tag}"
+//   vcpu_count     = "${var.vcpu_count}"
+//   ram_size       = "${var.ram_size}"
+//   stop_vm        = "true"
+// }
 
 source "null" "template" {
   ssh_host = "${var.source_vm_name}"
@@ -100,9 +100,55 @@ source "null" "template" {
   ssh_proxy_host = "${var.socks_proxy}"
 }
 
-build {
-  sources = ["source.${var.builder_type}.template"]
+variable github_org {
+  description = "The GitHub organization"
+  type        = string
+  default     = "gesundheitscloud"
+}
 
+variable runner_name {
+  description = "The name of the GitHub runner"
+  type        = string
+  default     = "macos12-runner"
+}
+
+variable runner_token {
+  description = "The GitHub token to use for registering the runner"
+  type        = string
+}
+
+variable runner_labels {
+  description = "Additional labels for the GitHub runner (comma separated)"
+  type        = string
+  default     = "macOS13"
+}
+
+#source "veertu-anka-vm-clone" "template" {
+#  vm_name = "${var.build_id}"
+#  source_vm_name = "${var.source_vm_name}"
+#  source_vm_tag = "${var.source_vm_tag}"
+#  vcpu_count = "${var.vcpu_count}"
+#  ram_size = "${var.ram_size}"
+#  stop_vm = "true"
+#}
+
+source "tart-cli" "tart" {
+  vm_base_name = "${var.source_vm_name}"
+  vm_name      = "${var.build_id}"
+  cpu_count    = "${var.vcpu_count}"
+  memory_gb    = 8
+  disk_size_gb = 160
+  ssh_username = "admin"
+  ssh_password = "admin"
+  ssh_timeout  = "120s"
+}
+
+
+build {
+#  sources = [
+#    "source.veertu-anka-vm-clone.template"
+#  ]
+  sources = ["source.tart-cli.tart"]
   provisioner "shell" {
     inline = ["mkdir ${local.image_folder}"]
   }
@@ -177,8 +223,8 @@ build {
     execute_command  = "chmod +x {{ .Path }}; source $HOME/.bash_profile; sudo {{ .Vars }} {{ .Path }}"
     scripts          = [
       "${path.root}/../scripts/build/configure-tccdb-macos.sh",
-      "${path.root}/../scripts/build/configure-auto-updates.sh",
-      "${path.root}/../scripts/build/configure-ntpconf.sh",
+#      "${path.root}/../scripts/build/configure-auto-updates.sh",
+#      "${path.root}/../scripts/build/configure-ntpconf.sh",
       "${path.root}/../scripts/build/configure-shell.sh"
     ]
   }
@@ -206,7 +252,7 @@ build {
     scripts          = [
       "${path.root}/../scripts/build/configure-windows.sh",
       "${path.root}/../scripts/build/install-powershell.sh",
-      "${path.root}/../scripts/build/install-mono.sh",
+#      "${path.root}/../scripts/build/install-mono.sh",
       "${path.root}/../scripts/build/install-dotnet.sh",
       "${path.root}/../scripts/build/install-python.sh",
       "${path.root}/../scripts/build/install-azcopy.sh",
@@ -245,10 +291,10 @@ build {
       "${path.root}/../scripts/build/install-gcc.sh",
       "${path.root}/../scripts/build/install-cocoapods.sh",
       "${path.root}/../scripts/build/install-android-sdk.sh",
-      "${path.root}/../scripts/build/install-vcpkg.sh",
+#      "${path.root}/../scripts/build/install-vcpkg.sh",
       "${path.root}/../scripts/build/install-safari.sh",
       "${path.root}/../scripts/build/install-chrome.sh",
-      "${path.root}/../scripts/build/install-edge.sh",
+#      "${path.root}/../scripts/build/install-edge.sh",
       "${path.root}/../scripts/build/install-firefox.sh",
       "${path.root}/../scripts/build/install-pypy.sh",
       "${path.root}/../scripts/build/install-bicep.sh",
@@ -271,20 +317,20 @@ build {
     script          = "${path.root}/../scripts/build/Configure-Xcode-Simulators.ps1"
   }
 
-  provisioner "shell" {
-    environment_vars = ["IMAGE_FOLDER=${local.image_folder}"]
-    execute_command  = "source $HOME/.bash_profile; {{ .Vars }} {{ .Path }}"
-    inline           = [
-      "pwsh -File \"${local.image_folder}/software-report/Generate-SoftwareReport.ps1\" -OutputDirectory \"${local.image_folder}/output/software-report\" -ImageName ${var.build_id}",
-      "pwsh -File \"${local.image_folder}/tests/RunAll-Tests.ps1\""
-    ]
-  }
-
-  provisioner "file" {
-    destination = "${path.root}/../../image-output/"
-    direction   = "download"
-    source      = "${local.image_folder}/output/"
-  }
+#  provisioner "shell" {
+#    environment_vars = ["IMAGE_FOLDER=${local.image_folder}"]
+#    execute_command  = "source $HOME/.bash_profile; {{ .Vars }} {{ .Path }}"
+#    inline           = [
+#      "pwsh -File \"${local.image_folder}/software-report/Generate-SoftwareReport.ps1\" -OutputDirectory \"${local.image_folder}/output/software-report\" -ImageName ${var.build_id}",
+#      "pwsh -File \"${local.image_folder}/tests/RunAll-Tests.ps1\""
+#    ]
+#  }
+#
+#  provisioner "file" {
+#    destination = "${path.root}/../../image-output/"
+#    direction   = "download"
+#    source      = "${local.image_folder}/output/"
+#  }
 
   provisioner "shell" {
     inline = ["rm -rf \"$(brew --cache)\""]
