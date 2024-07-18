@@ -138,7 +138,7 @@ source "tart-cli" "tart" {
   vm_name      = "${var.build_id}"
   cpu_count    = "${var.vcpu_count}"
   memory_gb    = "${trimsuffix(var.ram_size, "G")}"
-  disk_size_gb = 160
+  disk_size_gb = 200
   ssh_username = "admin"
   ssh_password = "admin"
   ssh_timeout  = "120s"
@@ -215,7 +215,6 @@ build {
     execute_command = "chmod +x {{ .Path }}; source $HOME/.bash_profile; {{ .Vars }} {{ .Path }}"
     scripts         = [
       "${path.root}/../scripts/build/install-xcode-clt.sh",
-      "${path.root}/../scripts/build/install-rosetta.sh",
       "${path.root}/../scripts/build/install-homebrew.sh"
     ]
   }
@@ -252,7 +251,7 @@ build {
     execute_command  = "chmod +x {{ .Path }}; source $HOME/.bash_profile; {{ .Vars }} {{ .Path }}"
     pause_before     = "30s"
     scripts          = [
-#      "${path.root}/../scripts/build/install-rosetta.sh",
+      "${path.root}/../scripts/build/install-rosetta.sh",
       "${path.root}/../scripts/build/configure-windows.sh",
       "${path.root}/../scripts/build/install-powershell.sh",
 #      "${path.root}/../scripts/build/install-mono.sh",

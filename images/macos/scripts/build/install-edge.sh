@@ -31,7 +31,7 @@ edge_driver_archive_path=$(download_with_retry "$edge_driver_url")
 EDGE_DRIVER_DIR="/usr/local/share/edge_driver"
 mkdir -p $EDGE_DRIVER_DIR
 unzip -qq $edge_driver_archive_path -d $EDGE_DRIVER_DIR
-ln -s $EDGE_DRIVER_DIR/msedgedriver /usr/local/bin/msedgedriver
+sudo ln -s $EDGE_DRIVER_DIR/msedgedriver /usr/local/bin/msedgedriver
 
 echo "export EDGEWEBDRIVER=${EDGE_DRIVER_DIR}" >> ${HOME}/.bashrc
 
