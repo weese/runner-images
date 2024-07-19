@@ -138,7 +138,7 @@ source "tart-cli" "tart" {
   vm_name      = "${var.build_id}"
   cpu_count    = "${var.vcpu_count}"
   memory_gb    = "${trimsuffix(var.ram_size, "G")}"
-  disk_size_gb = 240
+  disk_size_gb = 220
   ssh_username = "admin"
   ssh_password = "admin"
   ssh_timeout  = "120s"
