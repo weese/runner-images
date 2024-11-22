@@ -9,7 +9,7 @@ arch=$(get_arch)
 
 echo "Installing Python Tooling"
 
-if is_Monterey || is_BigSur; then
+if is_Monterey; then
     echo "Install latest Python 2"
     python2_pkg=$(download_with_retry "https://www.python.org/ftp/python/2.7.18/python-2.7.18-macosx10.9.pkg")
     python2_pkg_sha256="c570f38b05dd8b112ad21b418cdf51a9816d62f9f44746452739d421be24d50c"
@@ -34,9 +34,7 @@ EOF
 fi
 
 # Close Finder window
-if is_Veertu; then
-    close_finder_window
-fi
+close_finder_window
 
 echo "Brew Installing Python 3"
 brew_smart_install "python@3.12"

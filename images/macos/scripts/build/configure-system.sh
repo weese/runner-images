@@ -11,19 +11,21 @@ close_finder_window
 
 # Remove Parallels Desktop
 # https://github.com/actions/runner-images/issues/6105
-if is_Monterey; then
+# https://github.com/actions/runner-images/issues/10143
+if is_Monterey || is_SonomaX64 || is_VenturaX64; then
     brew uninstall parallels
 fi
 
 # Put documentation to $HOME root
 #cp $HOME/image-generation/output/software-report/systeminfo.* $HOME/
 
-# Put build vm assets scripts to proper directory
-sudo mkdir -p /usr/local/opt/$USER/scripts
-sudo chown -R $USER /usr/local/opt/$USER
-mv $HOME/image-generation/assets/* /usr/local/opt/$USER/scripts
-
-find /usr/local/opt/$USER/scripts -type f -name "*\.sh" -exec chmod +x {} \;
+# Put build vm assets (xamarin-selector) scripts to proper directory
+if is_Monterey || is_Sonoma || is_Ventura; then
+    mkdir -p /usr/local/opt/$USER/scripts
+    sudo chown -R $USER /usr/local/opt/$USER
+    mv $HOME/image-generation/assets/* /usr/local/opt/$USER/scripts
+    find /usr/local/opt/$USER/scripts -type f -name "*\.sh" -exec chmod +x {} \;
+fi
 
 # Remove fastlane cached cookie
 rm -rf ~/.fastlane
@@ -47,9 +49,8 @@ sudo rm -rf ~/utils /tmp/*
 # delete symlink for tests running
 sudo rm -f /usr/local/bin/invoke_tests
 
-# In our base image there is no runner user, so let's link it to the admin user's home
-sudo ln -s /Users/admin /Users/runner
+# Clean Homebrew downloads
+sudo rm -rf /Users/$USER/Library/Caches/Homebrew/downloads/*
 
-# link toolcache /Users/admin/hostedtoolcache to /Users/admin/actions-runner/_work/_tool
-mkdir -p /Users/admin/actions-runner/_work
-ln -s /Users/admin/hostedtoolcache /Users/admin/actions-runner/_work/_tool
+# Uninstall expect used in configure-machine.sh
+brew uninstall expect

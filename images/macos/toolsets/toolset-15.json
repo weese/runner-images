@@ -1,48 +1,36 @@
 {
     "xcode": {
-        "default": "15.2",
+        "default": "16",
         "x64": {
             "versions": [
-                { "link": "15.2", "version": "15.2.0+15C500b", "install_runtimes": "true", "sha256": "04E93680C6DDBEC84666531BE412DE778AFC8EAC6AB2037F4C2BE7290818B59B"},
-                { "link": "15.1", "version": "15.1.0+15C65", "install_runtimes": "true", "sha256": "857D8DB537BAC82BF99DE0E1D3895D214D4D02101C1340CEF3DAF6E821BA1D05"},
-                { "link": "15.0.1", "version": "15.0.1+15A507", "symlinks": ["15.0"], "install_runtimes": "true", "sha256": "5AC17AE6060CAFC3C7112C6DA0B153450BE21F1DE6632777FBA9FBC9D999C9E8"},
-                { "link": "14.3.1", "version": "14.3.1+14E300c","symlinks": ["14.3"], "install_runtimes": "true", "sha256": "B5CC7BF37447C32A971B37D71C7DA1AF7ABB45CEE4B96FE126A1D3B0D2C260AF"},
-                { "link": "14.2", "version": "14.2.0+14C18", "install_runtimes": "true", "sha256": "686B9D53CA49E50D563BC0104B1E8B4F7CCFE80064A6D689965FB819BF8EFE72"},
-                { "link": "14.1", "version": "14.1.0+14B47b", "install_runtimes": "true", "sha256": "12F8A3AEF78BF354470AD8B351ADDD925C8EDAD888137D138CA50A8130EB9F2F"}
-                ]
-        },
-        "arm64.orig":{
-            "versions": [
-                { "link": "15.2", "version": "15.2.0+15C500b", "install_runtimes": "true", "sha256": "04E93680C6DDBEC84666531BE412DE778AFC8EAC6AB2037F4C2BE7290818B59B"},
-                { "link": "15.1", "version": "15.1.0+15C65", "install_runtimes": "true", "sha256": "857D8DB537BAC82BF99DE0E1D3895D214D4D02101C1340CEF3DAF6E821BA1D05"},
-                { "link": "15.0.1", "version": "15.0.1+15A507", "symlinks": ["15.0"], "install_runtimes": "true", "sha256": "5AC17AE6060CAFC3C7112C6DA0B153450BE21F1DE6632777FBA9FBC9D999C9E8"},
-                { "link": "14.3.1", "version": "14.3.1+14E300c","symlinks": ["14.3"], "install_runtimes": "true", "sha256": "B5CC7BF37447C32A971B37D71C7DA1AF7ABB45CEE4B96FE126A1D3B0D2C260AF"},
-                { "link": "14.2", "version": "14.2.0+14C18", "install_runtimes": "true", "sha256": "686B9D53CA49E50D563BC0104B1E8B4F7CCFE80064A6D689965FB819BF8EFE72"},
-                { "link": "14.1", "version": "14.1.0+14B47b", "install_runtimes": "true", "sha256": "12F8A3AEF78BF354470AD8B351ADDD925C8EDAD888137D138CA50A8130EB9F2F"}
+                { "link": "16.2_beta_3", "version": "16.2.0-Beta.3+16C5023f", "symlinks": ["16.2"], "install_runtimes": "true", "sha256": "04f3a3e3daf5d07e5ecfdf3cd7fc34fcf0a654884388d56f9f69942a9e3b1e66"},
+                { "link": "16.1", "version": "16.1+16B40", "install_runtimes": "true", "sha256": "8ca961d55981f983d21b99a95a6b0ac04905b837f6e11346ee86d28f12afe720"},
+                { "link": "16", "version": "16.0.0+16A242d", "symlinks": ["16.0"], "install_runtimes": "true", "sha256": "4a26c3d102a55c7222fb145e0ee1503249c9c26c6e02dc64d783c8810b37b1e3"}
             ]
         },
         "arm64":{
             "versions": [
-                { "link": "15.2", "version": "15.2.0+15C500b", "install_runtimes": "true", "sha256": "04E93680C6DDBEC84666531BE412DE778AFC8EAC6AB2037F4C2BE7290818B59B"},
-                { "link": "14.3.1", "version": "14.3.1+14E300c","symlinks": ["14.3"], "install_runtimes": "true", "sha256": "B5CC7BF37447C32A971B37D71C7DA1AF7ABB45CEE4B96FE126A1D3B0D2C260AF"}
+                { "link": "16.2_beta_3", "version": "16.2.0-Beta.3+16C5023f", "symlinks": ["16.2"], "install_runtimes": "true", "sha256": "04f3a3e3daf5d07e5ecfdf3cd7fc34fcf0a654884388d56f9f69942a9e3b1e66"},
+                { "link": "16.1", "version": "16.1+16B40", "install_runtimes": "true", "sha256": "8ca961d55981f983d21b99a95a6b0ac04905b837f6e11346ee86d28f12afe720"},
+                { "link": "16", "version": "16.0.0+16A242d", "symlinks": ["16.0"], "install_runtimes": "true", "sha256": "4a26c3d102a55c7222fb145e0ee1503249c9c26c6e02dc64d783c8810b37b1e3"}
             ]
         }
     },
     "java": {
         "x64": {
-            "default": "17",
-            "versions": [ "8", "11", "17", "21"]
+            "default": "21",
+            "versions": [ "11", "17", "21"]
         },
         "arm64": {
-            "default": "17",
+            "default": "21",
             "versions": [ "11", "17", "21"]
         }
     },
     "android": {
-        "cmdline-tools": "commandlinetools-mac-10406996_latest.zip",
+        "cmdline-tools": "commandlinetools-mac-12266719_latest.zip",
         "sdk-tools": "sdk-tools-darwin-4333796.zip",
-        "platform_min_version": "33",
-        "build_tools_min_version": "33.0.2",
+        "platform_min_version": "35",
+        "build_tools_min_version": "35.0.0",
         "extras": [
             "android;m2repository", "google;m2repository", "google;google_play_services"
         ],
@@ -51,7 +39,7 @@
             "cmake;3.31.0"
         ],
         "ndk": {
-            "default": "26",
+            "default": "27",
             "versions": [
                 "26", "27"
             ]
@@ -80,19 +68,20 @@
             "gnu-tar",
             "kotlin",
             "libpq",
+            "libsodium",
             "p7zip",
             "packer",
             "perl",
             "swiftformat",
-            "tcl-tk@8",
             "zstd",
             "gmp",
             "yq",
+            "unxip",
             "xcbeautify",
             "xcodes"
         ],
         "cask_packages": [
-            "parallels"
+            ""
         ]
     },
     "gcc": {
@@ -106,20 +95,18 @@
         "arch":{
             "x64": {
                "versions": [
-                   "7.0",
                    "8.0"
                 ]
             },
             "arm64": {
                 "versions": [
-                    "7.0",
                     "8.0"
                 ]
             }
         }
     },
     "ruby": {
-        "default": "3.0",
+        "default": "3.3",
         "rubygems": [
             "cocoapods",
             "bundler",
@@ -134,7 +121,6 @@
             "arch": {
                 "x64": {
                     "versions": [
-                        "3.8.*",
                         "3.9.*",
                         "3.10.*",
                         "3.11.*",
@@ -147,25 +133,6 @@
                         "3.11.*",
                         "3.12.*",
                         "3.13.*"
-                    ]
-                }
-            }
-        },
-        {
-            "name": "PyPy",
-            "platform" : "darwin",
-            "arch": {
-                "x64": {
-                    "versions": [
-                        "2.7",
-                        "3.7",
-                        "3.8",
-                        "3.9",
-                        "3.10"
-                    ]
-                },
-                "arm64": {
-                    "versions": [
                     ]
                 }
             }
@@ -219,41 +186,21 @@
             "arch": {
                 "x64": {
                     "versions": [
-                        "3.0.*",
                         "3.1.*",
-                        "3.2.*",
-                        "3.3.*"
-                    ]
-                },
-                "arm64": {
-                    "versions": [
-                        "2.6.*",
-                        "2.7.*",
-                        "3.0.*",
-                        "3.1.*"
+                        "3.2.*"
                     ]
                 }
             }
         }
     ],
     "node": {
-        "default": "20"
+        "default": "22"
     },
     "llvm": {
-        "version": "15"
+        "version": "18"
     },
     "php": {
         "version": "8.3"
-    },
-    "mono": {
-        "framework":{
-            "version": "6.12.0.188",
-            "sha256": "07cdd4e5e72b562892960b7fc73af470db7a4ffc2f68bb834eb3d0a874bbd12c"
-        },
-        "nunit": {
-            "version": "3.15.4",
-            "sha256": "356dab61433b5be76b76fd0e2e979bda56d164f6d85a900e55c3a4a5fffa28de"
-        }
     },
     "pwsh": {
         "version": "7.4"
