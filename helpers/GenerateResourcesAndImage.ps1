@@ -1,15 +1,14 @@
 $ErrorActionPreference = 'Stop'
 
 enum ImageType {
-    Windows2019   = 1
-    Windows2022   = 2
-    Ubuntu2004    = 3
-    Ubuntu2204    = 4
-    Ubuntu2404    = 5
-    UbuntuMinimal = 6
+    Windows2022         = 1
+    Windows2025         = 2
+    Windows2025_vs2026  = 3
+    Ubuntu2204          = 4
+    Ubuntu2404          = 5
 }
 
-Function Get-PackerTemplatePath {
+Function Get-PackerTemplate {
     param (
         [Parameter(Mandatory = $True)]
         [string] $RepositoryRoot,
@@ -19,34 +18,42 @@ Function Get-PackerTemplatePath {
 
     switch ($ImageType) {
         # Note: Double Join-Path is required to support PowerShell 5.1
-        ([ImageType]::Windows2019) {
-            $relativeTemplatePath = Join-Path (Join-Path "windows" "templates") "windows-2019.pkr.hcl"
-        }
         ([ImageType]::Windows2022) {
-            $relativeTemplatePath = Join-Path (Join-Path "windows" "templates") "windows-2022.pkr.hcl"
+            $relativeTemplatePath = Join-Path (Join-Path "windows" "templates") "build.windows-2022.pkr.hcl"
+            $imageOS = "win22"
         }
-        ([ImageType]::Ubuntu2004) {
-            $relativeTemplatePath = Join-Path (Join-Path "ubuntu" "templates") "ubuntu-20.04.pkr.hcl"
+        ([ImageType]::Windows2025) {
+            $relativeTemplatePath = Join-Path (Join-Path "windows" "templates") "build.windows-2025.pkr.hcl"
+            $imageOS = "win25"
+        }
+        ([ImageType]::Windows2025_vs2026) {
+            $relativeTemplatePath = Join-Path (Join-Path "windows" "templates") "build.windows-2025-vs2026.pkr.hcl"
+            $imageOS = "win25-vs2026"
         }
         ([ImageType]::Ubuntu2204) {
-            $relativeTemplatePath = Join-Path (Join-Path "ubuntu" "templates") "ubuntu-22.04.pkr.hcl"
+            $relativeTemplatePath = Join-Path (Join-Path "ubuntu" "templates") "build.ubuntu-22_04.pkr.hcl"
+            $imageOS = "ubuntu22"
         }
         ([ImageType]::Ubuntu2404) {
-            $relativeTemplatePath = Join-Path (Join-Path "ubuntu" "templates") "ubuntu-24.04.pkr.hcl"
-        }
-        ([ImageType]::UbuntuMinimal) {
-            $relativeTemplatePath = Join-Path (Join-Path "ubuntu" "templates") "ubuntu-minimal.pkr.hcl"
+            $relativeTemplatePath = Join-Path (Join-Path "ubuntu" "templates") "build.ubuntu-24_04.pkr.hcl"
+            $imageOS = "ubuntu24"
         }
         default { throw "Unknown type of image" }
     }
 
     $imageTemplatePath = [IO.Path]::Combine($RepositoryRoot, "images", $relativeTemplatePath)
+    # Specific template selection using Packer's "-only" functionality
+    $buildName = [IO.Path]::GetFileName($imageTemplatePath).Split(".")[1]
 
     if (-not (Test-Path $imageTemplatePath)) {
         throw "Template for image '$ImageType' doesn't exist on path '$imageTemplatePath'."
     }
 
-    return $imageTemplatePath;
+    return [PSCustomObject] @{
+        "BuildName" = $buildName
+        "ImageOS"   = $imageOS
+        "Path"      = [IO.Path]::GetDirectoryName($imageTemplatePath)
+    }
 }
 
 Function Show-LatestCommit {
@@ -57,6 +64,35 @@ Function Show-LatestCommit {
         $latestCommit = (git --no-pager log --pretty=format:"Date: %cd; Commit: %H - %s; Author: %an <%ae>" -1)
         Write-Host "Latest commit: $latestCommit."
     }
+}
+
+function Get-GitHubActionsOidcIdToken {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $True)]
+        [string] $RequestUrl,
+        [Parameter(Mandatory = $True)]
+        [string] $RequestToken,
+        [Parameter(Mandatory = $False)]
+        [string] $Audience = 'api://AzureADTokenExchange'
+    )
+
+    $separator = if ($RequestUrl -match '\?') { '&' } else { '?' }
+    $urlWithAudience = "${RequestUrl}${separator}audience=$([System.Uri]::EscapeDataString($Audience))"
+    $headers = @{ Authorization = "Bearer $RequestToken" }
+
+    try {
+        $response = Invoke-RestMethod -Method Get -Uri $urlWithAudience -Headers $headers
+    }
+    catch {
+        throw "Failed to request GitHub Actions OIDC ID token. Ensure workflow permissions include 'id-token: write'. Details: $($_.Exception.Message)"
+    }
+
+    if ([string]::IsNullOrEmpty($response.value)) {
+        throw "GitHub Actions OIDC token response did not contain a 'value' field."
+    }
+
+    return $response.value
 }
 
 function Start-Sleep($seconds) {
@@ -79,9 +115,9 @@ Function GenerateResourcesAndImage {
         .PARAMETER SubscriptionId
             The Azure subscription id where the Azure resources will be created.
         .PARAMETER ResourceGroupName
-            The name of the resource group to create the Azure resources in.
+            The name of the resource group to store the resulting artifact. Resource group must already exist.
         .PARAMETER ImageType
-            The type of image to generate. Valid values are: Windows2019, Windows2022, Ubuntu2004, Ubuntu2204, UbuntuMinimal.
+            The type of image to generate. Valid values are: Windows2022, Windows2025, Windows2025_vs2026, Ubuntu2204, Ubuntu2404.
         .PARAMETER ManagedImageName
             The name of the managed image to create. The default is "Runner-Image-{{ImageType}}".
         .PARAMETER AzureLocation
@@ -96,15 +132,16 @@ Function GenerateResourcesAndImage {
             The Azure client secret to use to authenticate with Azure. If not specified, the current user's credentials will be used.
         .PARAMETER AzureTenantId
             The Azure tenant id to use to authenticate with Azure. If not specified, the current user's credentials will be used.
+        .PARAMETER UseOidc
+            If set, authenticate using GitHub Actions OIDC (federated credentials) instead of a client secret.
+            Requires AzureClientId and AzureTenantId, and OidcRequestToken/OidcRequestUrl parameters.
+        .PARAMETER OidcRequestToken
+            GitHub Actions OIDC request token.
+        .PARAMETER OidcRequestUrl
+            GitHub Actions OIDC request URL.
         .PARAMETER RestrictToAgentIpAddress
             If set, access to the VM used by packer to generate the image is restricted to the public IP address this script is run from. 
             This parameter cannot be used in combination with the virtual_network_name packer parameter.
-        .PARAMETER Force
-            Delete the resource group if it exists without user confirmation.
-            This parameter is deprecated and will be removed in a future release.
-        .PARAMETER ReuseResourceGroup
-            Reuse the resource group if it exists without user confirmation.
-            This parameter is deprecated and will be removed in a future release.
         .PARAMETER OnError
             Specify how packer handles an error during image creation.
             Options:
@@ -115,8 +152,10 @@ Function GenerateResourcesAndImage {
             The default is 'ask'.
         .PARAMETER Tags
             Tags to be applied to the Azure resources created.
+        .PARAMETER PluginVersion
+            Specify the version of the packer Azure plugin to use. The default is "2.2.1".
         .EXAMPLE
-            GenerateResourcesAndImage -SubscriptionId {YourSubscriptionId} -ResourceGroupName "shsamytest1" -ImageGenerationRepositoryRoot "C:\runner-images" -ImageType Ubuntu2004 -AzureLocation "East US"
+            GenerateResourcesAndImage -SubscriptionId {YourSubscriptionId} -ResourceGroupName "shsamytest1" -ImageGenerationRepositoryRoot "C:\runner-images" -ImageType Ubuntu2204 -AzureLocation "East US"
     #>
     param (
         [Parameter(Mandatory = $True)]
@@ -140,25 +179,23 @@ Function GenerateResourcesAndImage {
         [Parameter(Mandatory = $False)]
         [string] $AzureTenantId,
         [Parameter(Mandatory = $False)]
+        [switch] $UseOidc,
+        [Parameter(Mandatory = $False)]
+        [ValidateNotNullOrEmpty()]
+        [string] $OidcRequestToken,
+        [Parameter(Mandatory = $False)]
+        [ValidateNotNullOrEmpty()]
+        [string] $OidcRequestUrl,
+        [Parameter(Mandatory = $False)]
+        [string] $PluginVersion = "2.2.1",
+        [Parameter(Mandatory = $False)]
         [switch] $RestrictToAgentIpAddress,
-        [Parameter(Mandatory = $False)]
-        [switch] $Force,
-        [Parameter(Mandatory = $False)]
-        [switch] $ReuseResourceGroup,
         [Parameter(Mandatory = $False)]
         [ValidateSet("abort", "ask", "cleanup", "run-cleanup-provisioner")]
         [string] $OnError = "ask",
         [Parameter(Mandatory = $False)]
         [hashtable] $Tags = @{}
     )
-
-    if ($Force -or $ReuseResourceGroup) {
-        Write-Warning "The `ReuseResourceGroup` and `Force` parameters are deprecated and will be removed in a future release. The resource group will be reused when it already exists and an error will be thrown when it doesn't. If you want to delete the resource group, please delete it manually."
-    }
-
-    if ($Force -and $ReuseResourceGroup) {
-        throw "Force and ReuseResourceGroup cannot be used together."
-    }
 
     Show-LatestCommit -ErrorAction SilentlyContinue
 
@@ -169,12 +206,12 @@ Function GenerateResourcesAndImage {
     }
 
     # Get template path
-    $TemplatePath = Get-PackerTemplatePath -RepositoryRoot $ImageGenerationRepositoryRoot -ImageType $ImageType
-    Write-Debug "Template path: $TemplatePath."
+    $PackerTemplate = Get-PackerTemplate -RepositoryRoot $ImageGenerationRepositoryRoot -ImageType $ImageType
+    Write-Debug "Template path: $($PackerTemplate.Path)."
 
     # Prepare list of allowed inbound IP addresses
     if ($RestrictToAgentIpAddress) {
-        $AgentIp = (Invoke-RestMethod http://ipinfo.io/json).ip
+        $AgentIp = (Invoke-RestMethod https://ipinfo.io/json).ip
         if (-not $AgentIp) {
             throw "Unable to determine agent IP address."
         }
@@ -214,25 +251,34 @@ Function GenerateResourcesAndImage {
     $InstallPassword = $env:UserName + [System.GUID]::NewGuid().ToString().ToUpper()
 
     Write-Host "Downloading packer plugins..."
-    & $PackerBinary init $TemplatePath
+    & $PackerBinary plugins install github.com/hashicorp/azure $PluginVersion
 
     if ($LastExitCode -ne 0) {
         throw "Packer plugins download failed."
     }
 
     Write-Host "Validating packer template..."
+    $validateClientSecret = "fake"
+    if ($UseOidc) {
+        $validateClientSecret = ""
+    }
+
     & $PackerBinary validate `
+        "-only=$($PackerTemplate.BuildName).*" `
         "-var=client_id=fake" `
-        "-var=client_secret=fake" `
+        "-var=client_secret=$($validateClientSecret)" `
+        "-var=oidc_request_token=fake" `
+        "-var=oidc_request_url=fake" `
         "-var=subscription_id=$($SubscriptionId)" `
         "-var=tenant_id=fake" `
         "-var=location=$($AzureLocation)" `
+        "-var=image_os=$($PackerTemplate.ImageOS)" `
         "-var=managed_image_name=$($ManagedImageName)" `
         "-var=managed_image_resource_group_name=$($ResourceGroupName)" `
         "-var=install_password=$($InstallPassword)" `
         "-var=allowed_inbound_ip_addresses=$($AllowedInboundIpAddresses)" `
         "-var=azure_tags=$($TagsJson)" `
-        $TemplatePath
+        $PackerTemplate.Path
 
     if ($LastExitCode -ne 0) {
         throw "Packer template validation failed."
@@ -244,10 +290,23 @@ Function GenerateResourcesAndImage {
             Write-Verbose "No AzureClientId was provided, will use interactive login."
             az login --output none
         }
+        elseif ($UseOidc) {
+            if ([string]::IsNullOrEmpty($AzureTenantId)) {
+                throw "AzureTenantId is required for OIDC authentication."
+            }
+
+            Write-Verbose "Using OIDC service principal login (federated credentials)."
+            $idToken = Get-GitHubActionsOidcIdToken -RequestUrl $OidcRequestUrl -RequestToken $OidcRequestToken
+            az login --service-principal --username $AzureClientId --tenant $AzureTenantId --federated-token $idToken --output none
+        }
         else {
-            Write-Verbose "AzureClientId was provided, will use service principal login."
+            if ([string]::IsNullOrEmpty($AzureClientSecret) -or [string]::IsNullOrEmpty($AzureTenantId)) {
+                throw "AzureClientSecret and AzureTenantId are required for service principal login unless -UseOidc is specified."
+            }
+            Write-Verbose "AzureClientId was provided, will use service principal login (client secret)."
             az login --service-principal --username $AzureClientId --password=$AzureClientSecret --tenant $AzureTenantId --output none
         }
+
         az account set --subscription $SubscriptionId
         if ($LastExitCode -ne 0) {
             throw "Failed to login to Azure subscription '$SubscriptionId'."
@@ -258,76 +317,11 @@ Function GenerateResourcesAndImage {
         if ($ResourceGroupExists) {
             Write-Verbose "Resource group '$ResourceGroupName' already exists."
         }
-
-        # Remove resource group if it exists and we are not reusing it
-        if ($ResourceGroupExists -and -not $ReuseResourceGroup) {
-            if ($Force) {
-                # Delete and recreate the resource group
-                Write-Host "Deleting resource group '$ResourceGroupName'..."
-                az group delete --name $ResourceGroupName --yes --output none
-                if ($LastExitCode -ne 0) {
-                    throw "Failed to delete resource group '$ResourceGroupName'."
-                }
-                Write-Host "Resource group '$ResourceGroupName' was deleted."
-                $ResourceGroupExists = $false
-            }
-            else {
-                # are we running in a non-interactive session?
-                # https://stackoverflow.com/questions/9738535/powershell-test-for-noninteractive-mode
-                if ([System.Console]::IsOutputRedirected -or ![Environment]::UserInteractive -or !!([Environment]::GetCommandLineArgs() | Where-Object { $_ -ilike '-noni*' })) {
-                    throw "Non-interactive mode, resource group '$ResourceGroupName' already exists, either specify -Force to delete it, or -ReuseResourceGroup to reuse."
-                }
-                else {
-                    # Resource group already exists, ask the user what to do
-                    $title = "Resource group '$ResourceGroupName' already exists"
-                    $message = "Do you want to delete the resource group and all resources in it?"
-
-                    $options = @(
-                        [System.Management.Automation.Host.ChoiceDescription]::new("&Yes", "Delete the resource group and all resources in it."),
-                        [System.Management.Automation.Host.ChoiceDescription]::new("&No", "Keep the resource group and continue."),
-                        [System.Management.Automation.Host.ChoiceDescription]::new("&Abort", "Abort execution.")
-                    )
-                    $result = $Host.UI.PromptForChoice($title, $message, $options, 0)
-                }
-
-                switch ($result) {
-                    0 {
-                        # Delete and recreate the resource group
-                        Write-Host "Deleting resource group '$ResourceGroupName'..."
-                        az group delete --name $ResourceGroupName --yes
-                        if ($LastExitCode -ne 0) {
-                            throw "Failed to delete resource group '$ResourceGroupName'."
-                        }
-                        Write-Host "Resource group '$ResourceGroupName' was deleted."
-                        $ResourceGroupExists = $false
-                    }
-                    1 {
-                        # Keep the resource group and continue
-                    }
-                    2 {
-                        # Stop the current action
-                        Write-Error "User stopped the action."
-                        exit 1
-                    }
-                }
-            }
+        else {
+            throw "Resource group '$ResourceGroupName' does not exist."
         }
 
-        # Create resource group
-        if (-not $ResourceGroupExists) {
-            Write-Host "Creating resource group '$ResourceGroupName' in location '$AzureLocation'..."
-            if ($TagsList) {
-                az group create --name $ResourceGroupName --location $AzureLocation --tags $TagsList --query id
-            }
-            else {
-                az group create --name $ResourceGroupName --location $AzureLocation --query id
-            }
-            if ($LastExitCode -ne 0) {
-                throw "Failed to create resource group '$ResourceGroupName'."
-            }
-        }
-
-        # Create service principal
+        # Create / choose authentication for packer
         if ([string]::IsNullOrEmpty($AzureClientId)) {
             Write-Host "Creating service principal for packer..."
             $ADCleanupRequired = $true
@@ -347,25 +341,46 @@ Function GenerateResourcesAndImage {
             Write-Host "Service principal created with id '$ServicePrincipalAppId'. It will be deleted after the build."
         }
         else {
-            $ServicePrincipalAppId = $AzureClientId
-            $ServicePrincipalPassword = $AzureClientSecret
-            $TenantId = $AzureTenantId
+            if ($UseOidc) {
+                if ([string]::IsNullOrEmpty($AzureTenantId)) {
+                    throw "AzureTenantId is required for OIDC authentication."
+                }
+
+                $ServicePrincipalAppId = $AzureClientId
+                $ServicePrincipalPassword = ""
+                $TenantId = $AzureTenantId
+                # Avoid leaking OIDC request values via command line arguments.
+                $env:PKR_VAR_oidc_request_token = $OidcRequestToken
+                $env:PKR_VAR_oidc_request_url = $OidcRequestUrl
+            }
+            else {
+                if ([string]::IsNullOrEmpty($AzureClientSecret) -or [string]::IsNullOrEmpty($AzureTenantId)) {
+                    throw "AzureClientSecret and AzureTenantId are required for service principal authentication unless -UseOidc is specified."
+                }
+                $ServicePrincipalAppId = $AzureClientId
+                $ServicePrincipalPassword = $AzureClientSecret
+                $TenantId = $AzureTenantId
+            }
         }
         Write-Debug "Service principal app id: $ServicePrincipalAppId."
         Write-Debug "Tenant id: $TenantId."
 
         & $PackerBinary build -on-error="$($OnError)" `
+            -only "$($PackerTemplate.BuildName).*" `
             -var "client_id=$($ServicePrincipalAppId)" `
             -var "client_secret=$($ServicePrincipalPassword)" `
+            -var "oidc_request_token=$($env:PKR_VAR_oidc_request_token)" `
+            -var "oidc_request_url=$($env:PKR_VAR_oidc_request_url)" `
             -var "subscription_id=$($SubscriptionId)" `
             -var "tenant_id=$($TenantId)" `
             -var "location=$($AzureLocation)" `
+            -var "image_os=$($PackerTemplate.ImageOS)" `
             -var "managed_image_name=$($ManagedImageName)" `
             -var "managed_image_resource_group_name=$($ResourceGroupName)" `
             -var "install_password=$($InstallPassword)" `
             -var "allowed_inbound_ip_addresses=$($AllowedInboundIpAddresses)" `
             -var "azure_tags=$($TagsJson)" `
-            $TemplatePath
+            $PackerTemplate.Path
 
         if ($LastExitCode -ne 0) {
             throw "Failed to build image."

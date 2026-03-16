@@ -53,7 +53,7 @@ function Install-JavaJDK {
     )
 
     # Get Java version from api
-    $assetUrl = Invoke-RestMethod -Uri "https://api.adoptium.net/v3/assets/latest/${JDKVersion}/hotspot"
+    $assetUrl = Invoke-RestMethod -Uri "https://api.adoptium.net/v3/assets/latest/${JDKVersion}/hotspot" -Headers @{"Accept" = "application/json"}
 
     $asset = $assetUrl | Where-Object {
         $_.binary.os -eq "windows" `
@@ -110,7 +110,6 @@ foreach ($jdkVersionToInstall in $jdkVersionsToInstall) {
 # Install Java tools
 # Force chocolatey to ignore dependencies on Ant and Maven or else they will download the Oracle JDK
 Install-ChocoPackage ant -ArgumentList "--ignore-dependencies"
-# Maven 3.9.x has multiple compatibilities problems
 $toolsetMavenVersion = (Get-ToolsetContent).maven.version
 $versionToInstall = Resolve-ChocoPackageVersion -PackageName "maven" -TargetVersion $toolsetMavenVersion
 

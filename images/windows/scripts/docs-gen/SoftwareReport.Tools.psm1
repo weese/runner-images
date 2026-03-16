@@ -55,11 +55,6 @@ function Get-DockerVersion {
     return $dockerVersion
 }
 
-function Get-DockerComposeVersion {
-    $dockerComposeVersion = docker-compose version --short
-    return $dockerComposeVersion
-}
-
 function Get-DockerComposeVersionV2 {
     $dockerComposeVersion = docker compose version --short
     return $dockerComposeVersion
@@ -126,8 +121,13 @@ function Get-MySQLVersion {
     return $mysqlVersion
 }
 
-function Get-SQLOLEDBDriverVersion {
+function Get-SQLOLEDBDriver18Version {
     $SQLOLEDBDriverVersion = (Get-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\MSOLEDBSQL' InstalledVersion).InstalledVersion
+    return $SQLOLEDBDriverVersion
+}
+
+function Get-SQLOLEDBDriver19Version {
+    $SQLOLEDBDriverVersion = (Get-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\MSOLEDBSQL19' InstalledVersion).InstalledVersion
     return $SQLOLEDBDriverVersion
 }
 
@@ -151,11 +151,6 @@ function Get-OpenSSLVersion {
 function Get-PackerVersion {
     $packerVersion = (packer --version | Select-String "^Packer").Line.Replace('v','') | Get-StringPart -Part 1
     return $packerVersion
-}
-
-function Get-ParcelVersion {
-    $parcelVersion = parcel --version
-    return "$parcelVersion"
 }
 
 function Get-PulumiVersion {
@@ -233,12 +228,6 @@ function Get-AlibabaCLIVersion {
     return $alicliVersion
 }
 
-function Get-CloudFoundryVersion {
-    $(cf version) -match "(?<version>\d+\.\d+\.\d+)" | Out-Null
-    $cfVersion = $Matches.Version
-    return $cfVersion
-}
-
 function Get-7zipVersion {
     (7z | Out-String) -match "7-Zip (?<version>\d+\.\d+\.?\d*)" | Out-Null
     $version = $Matches.Version
@@ -261,10 +250,6 @@ function Get-StackVersion {
     ((stack --version --quiet) | Out-String) -match "Version (?<version>\d+\.\d+\.\d+)," | Out-Null
     $stackVersion = $Matches.Version
     return $stackVersion
-}
-
-function Get-GoogleCloudCLIVersion {
-    return (((cmd /c "gcloud --version") -match "Google Cloud SDK") -replace "Google Cloud SDK").Trim()
 }
 
 function Get-ServiceFabricSDKVersion {
@@ -304,7 +289,7 @@ function Get-VisualCPPComponents {
 }
 
 function Get-DacFxVersion {
-    $dacfxversion = & "$env:ProgramFiles\Microsoft SQL Server\160\DAC\bin\sqlpackage.exe" /version
+    $dacfxversion = & "$env:ProgramFiles\Microsoft SQL Server\170\DAC\bin\sqlpackage.exe" /version
     return $dacfxversion
 }
 
@@ -318,4 +303,16 @@ function Get-ImageMagickVersion {
     (magick -version | Select-String -Pattern "Version") -match "(?<version>\d+\.\d+\.\d+-\d+)" | Out-Null
     $magickVersion = $Matches.Version
     return $magickVersion
+}
+
+function Get-MongoshVersion {
+    return $(mongosh --version)
+}
+
+function Get-WSL2Version {
+    return $((Get-AppxPackage -Name "MicrosoftCorporationII.WindowsSubsystemForLinux").version)
+}
+
+function Get-NinjaVersion {
+    return $(ninja --version)
 }

@@ -10,21 +10,17 @@ echo "Enabling developer mode..."
 sudo /usr/sbin/DevToolsSecurity --enable
 
 # Turn off hibernation and get rid of the sleepimage
-sudo pmset hibernatemode 0
+sudo pmset -a hibernatemode 0
 sudo rm -f /var/vm/sleepimage
+
+# Set computer, disk, and display sleep to never
+sudo pmset -a sleep 0 disksleep 0 displaysleep 0
 
 # Disable App Nap System Wide
 defaults write NSGlobalDomain NSAppSleepDisabled -bool YES
 
 # Disable Keyboard Setup Assistant window
-if is_Veertu; then
-    sudo defaults write /Library/Preferences/com.apple.keyboardtype "keyboardtype" -dict-add "3-7582-0" -int 40
-fi
-
-# Change screen resolution to the maximum supported for 4Mb video memory
-if [[ -d "/Library/Application Support/VMware Tools" ]]; then
-    sudo "/Library/Application Support/VMware Tools/vmware-resolutionSet" 1176 885
-fi
+sudo defaults write /Library/Preferences/com.apple.keyboardtype "keyboardtype" -dict-add "3-7582-0" -int 40
 
 # Update VoiceOver Utility to allow VoiceOver to be controlled with AppleScript
 # by creating a special Accessibility DB file (SIP must be disabled) and
@@ -39,7 +35,6 @@ defaults write com.apple.VoiceOver4/default SCREnableAppleScript -bool YES
 # Rotate the certificate before expiration to ensure your apps are installed and signed with an active certificate.
 # Confirm that the correct intermediate certificate is installed by verifying the expiration date is set to 2030.
 # sudo security delete-certificate -Z FF6797793A3CD798DC5B2ABEF56F73EDC9F83A64 /Library/Keychains/System.keychain
-# Big Sur requires user interaction to add a cert https://developer.apple.com/forums/thread/671582, we need to use a workaround with SecItemAdd swift method
 
 swiftc -suppress-warnings "${HOME}/image-generation/add-certificate.swift"
 
@@ -58,21 +53,18 @@ done
 rm -f ./add-certificate
 
 # enable-automationmode-without-authentication
-if ! is_BigSur; then
+brew install expect
 retry=10
 while [[ $retry -gt 0 ]]; do
 {
-osascript <<EOF
-    tell application "Terminal"
-        activate
-        do script "automationmodetool enable-automationmode-without-authentication"
-        delay 2
-        tell application "System Events"
-            keystroke "${PASSWORD}"
-            keystroke return
-        end tell
-    end tell
-    delay 5
+    /usr/bin/expect <<EOF
+        spawn automationmodetool enable-automationmode-without-authentication
+        expect "password"
+        send "${PASSWORD}\r"
+        expect {
+            "succeeded." { puts "Automation mode enabled successfully"; exit 0 }
+            eof
+        }
 EOF
 } && break
 
@@ -84,17 +76,28 @@ EOF
     sleep 10
 done
 
-    echo "Getting terminal windows"
-    term_service=$(launchctl list | grep -i terminal | cut -f3)
+echo "Getting terminal windows"
+launchctl_output=$(launchctl list | grep -i terminal || true)
+
+if [ -n "$launchctl_output" ]; then
+    term_service=$(echo "$launchctl_output" | cut -f3)
     echo "Close terminal windows: gui/501/${term_service}"
     launchctl bootout gui/501/${term_service} && sleep 5
-
-    # test enable-automationmode-without-authentication
-    if [[ ! "$(automationmodetool)" =~ "DOES NOT REQUIRE" ]]; then
-        echo "Failed to enable enable-automationmode-without-authentication option"
-        exit 1
-    fi
+else
+    echo "No open terminal windows found."
 fi
+
+# test enable-automationmode-without-authentication
+if [[ ! "$(automationmodetool)" =~ "DOES NOT REQUIRE" ]]; then
+    echo "Failed to enable enable-automationmode-without-authentication option"
+    exit 1
+fi
+
+# Fix sudoers file permissions
+sudo chmod 440 /etc/sudoers.d/*
+
+# Add NOPASSWD for the current user to sudoers
+sudo sed -i '' 's/%admin		ALL = (ALL) ALL/%admin		ALL = (ALL) NOPASSWD: ALL/g' /etc/sudoers
 
 # Create symlink for tests running
 if [[ ! -d "/usr/local/bin" ]];then
@@ -103,3 +106,7 @@ if [[ ! -d "/usr/local/bin" ]];then
 fi
 chmod +x $HOME/utils/invoke-tests.sh
 sudo ln -s $HOME/utils/invoke-tests.sh /usr/local/bin/invoke_tests
+
+# Fix share dir permissions
+sudo chown "$USER":admin /usr/local/share
+sudo chmod 775 /usr/local/share
