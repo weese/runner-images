@@ -1,0 +1,18 @@
+{
+  "vsphere_endpoint": "vcenter.example.com",
+  "vsphere_username": "user@vsphere.local",
+  "vsphere_password": "REPLACE_ME",
+  "vsphere_insecure_connection": true,
+  "vsphere_datacenter": "Datacenter",
+  "vsphere_cluster": "",
+  "vsphere_host": "10.0.0.11",
+  "vsphere_datastore": "datastore1",
+  "vsphere_network": "VM Network",
+  "vsphere_folder": "GitHub Runners",
+  "vsphere_resource_pool": "",
+  "vsphere_template_name": "linux-ubuntu-24.04-lts-main",
+  "vm_name": "github-runner-ubuntu-24.04",
+  "vm_disk_size": 122880,
+  "build_username": "ubuntu",
+  "build_password": "REPLACE_ME"
+}
