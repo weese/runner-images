@@ -1,7 +1,7 @@
-Describe "MongoDB" {
+Describe "MongoDB" -Skip:(Test-IsWin11-Arm64) {
     Context "Version" {
         It "<ToolName>" -TestCases @(
-            @{ ToolName = "mongo" }
+            @{ ToolName = "mongos" }
             @{ ToolName = "mongod" }
         ) {
             $toolsetVersion = (Get-ToolsetContent).mongodb.version
@@ -25,9 +25,15 @@ Describe "MongoDB" {
             $StartType | Should -Be "Disabled"
         }
     }
+
+    Context "Shell" {
+        It "mongosh" {
+            "mongosh --version" | Should -ReturnZeroExitCode
+        }
+    }
 }
 
-Describe "PostgreSQL" {
+Describe "PostgreSQL" -Skip:(Test-IsWin11-Arm64) {
     $psqlTests = @(
         @{envVar = "PGROOT"; pgPath = Get-EnvironmentVariable "PGROOT" }
         @{envVar = "PGBIN"; pgPath = Get-EnvironmentVariable "PGBIN" }
