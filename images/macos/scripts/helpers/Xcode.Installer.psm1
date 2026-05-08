@@ -106,6 +106,29 @@ function Approve-XcodeLicense {
     }
 }
 
+# Wrapper around Invoke-ValidateCommand that retries on transient failures.
+# Apple's MobileAsset catalog is intermittently flaky and CoreSimulatorService
+# briefly fails to connect when switching between Xcodes that ship different
+# CoreSimulator.framework versions; both clear up after a few seconds.
+function Invoke-ValidateCommandWithRetry {
+    param (
+        [Parameter(Mandatory)]
+        [string] $Command,
+        [int] $RetryAttempts = 5,
+        [int] $PauseDurationSecs = 30
+    )
+
+    for ($Attempt = 1; $Attempt -le $RetryAttempts; $Attempt++) {
+        try {
+            return Invoke-ValidateCommand $Command
+        } catch {
+            if ($Attempt -eq $RetryAttempts) { throw }
+            Write-Host "Attempt $Attempt of [$Command] failed: $_. Retrying in $PauseDurationSecs s..."
+            Start-Sleep -Seconds $PauseDurationSecs
+        }
+    }
+}
+
 function Install-XcodeAdditionalComponents {
     param (
         [Parameter(Mandatory)]
@@ -115,7 +138,7 @@ function Install-XcodeAdditionalComponents {
     Write-Host "Installing additional MetalToolchain component for Xcode $Version..."
     $xcodeRootPath = Get-XcodeRootPath -Version $Version
     $xcodeBuildPath = Get-XcodeToolPath -XcodeRootPath $xcodeRootPath -ToolName "xcodebuild"
-    Invoke-ValidateCommand "$xcodeBuildPath -downloadComponent MetalToolchain" | Out-Null
+    Invoke-ValidateCommandWithRetry "$xcodeBuildPath -downloadComponent MetalToolchain" | Out-Null
 }
 
 function Invoke-XcodeRunFirstLaunch {
@@ -157,7 +180,7 @@ function Install-XcodeAdditionalSimulatorRuntimes {
     # Install all runtimes / skip runtimes
     if ($Runtimes -eq "default") {
         Write-Host "Installing all runtimes for Xcode $Version ..."
-        Invoke-ValidateCommand "$xcodebuildPath -downloadAllPlatforms $archSuffix" | Out-Null
+        Invoke-ValidateCommandWithRetry "$xcodebuildPath -downloadAllPlatforms $archSuffix" | Out-Null
         return
     } elseif ($Runtimes -eq "none") {
         Write-Host "Skipping runtimes installation for Xcode $Version ..."
@@ -204,14 +227,14 @@ function Install-XcodeAdditionalSimulatorRuntimes {
                 }
                 "default" {
                     Write-Host "Installing default $platform runtime for Xcode $Version ..."
-                    Invoke-ValidateCommand "$xcodebuildPath -downloadPlatform $platform $archSuffix" | Out-Null
+                    Invoke-ValidateCommandWithRetry "$xcodebuildPath -downloadPlatform $platform $archSuffix" | Out-Null
                     continue
                 }
                 default {
                     # Version might be a semver or a build number
                     if (($platformVersion -match "^\d{1,2}\.\d(\.\d)?$") -or ($platformVersion -match "^[a-zA-Z0-9]{6,8}$")) {
                         Write-Host "Installing $platform $platformVersion runtime for Xcode $Version ..."
-                        Invoke-ValidateCommand "$xcodebuildPath -downloadPlatform $platform -buildVersion $platformVersion $archSuffix" | Out-Null
+                        Invoke-ValidateCommandWithRetry "$xcodebuildPath -downloadPlatform $platform -buildVersion $platformVersion $archSuffix" | Out-Null
                         continue
                     }
                     throw "$platformVersion is not a valid value for $platform version. Valid values are 'default', or 'skip', or a semver from 0.0 to 99.9.(9), or a build number."
