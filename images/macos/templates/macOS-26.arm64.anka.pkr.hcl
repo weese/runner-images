@@ -106,7 +106,7 @@ build {
   sources = ["source.${var.builder_type}.template"]
 
   provisioner "shell" {
-    inline = ["mkdir ${local.image_folder}"]
+    inline = ["mkdir -p ${local.image_folder}"]
   }
 
   provisioner "file" {
