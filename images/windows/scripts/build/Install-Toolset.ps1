@@ -13,7 +13,7 @@ Function Install-Asset {
     )
 
     $releaseAssetName = [System.IO.Path]::GetFileNameWithoutExtension($ReleaseAsset.filename)
-    $assetFolderPath = Join-Path $env:TEMP $releaseAssetName
+    $assetFolderPath = Join-Path $env:TEMP_DIR $releaseAssetName
     $assetArchivePath = Invoke-DownloadWithRetry $ReleaseAsset.download_url
 
     Write-Host "Extract $($ReleaseAsset.filename) content..."
@@ -44,11 +44,10 @@ foreach ($tool in $tools) {
 
     # Get github release asset for each version
     foreach ($toolVersion in $tool.versions) {
-        $asset = $assets `
-        | Where-Object version -like $toolVersion `
-        | Select-Object -ExpandProperty files `
-        | Where-Object { ($_.platform -eq $tool.platform) -and ($_.arch -eq $tool.arch) -and ($_.toolset -eq $tool.toolset) } `
-        | Select-Object -First 1
+        $asset = $assets | Where-Object { ($_.version -like $toolVersion) -and ($_.version -as [version] -ne $null) } `
+            | Select-Object -ExpandProperty files `
+            | Where-Object { ($_.platform -eq $tool.platform) -and ($_.arch -eq $tool.arch) -and ($_.toolset -eq $tool.toolset) } `
+            | Select-Object -First 1
 
         if (-not $asset) {
             throw "Asset for $($tool.name) $toolVersion $($tool.arch) not found in versions manifest"

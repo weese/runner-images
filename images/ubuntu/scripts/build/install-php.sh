@@ -9,13 +9,6 @@ source $HELPER_SCRIPTS/etc-environment.sh
 source $HELPER_SCRIPTS/os.sh
 source $HELPER_SCRIPTS/install.sh
 
-# add repository for old Ubuntu images
-# details in thread: https://github.com/actions/runner-images/issues/6331
-if is_ubuntu20; then
-    apt-add-repository ppa:ondrej/php -y
-    apt-get update
-fi
-
 # Install PHP
 php_versions=$(get_toolset_value '.php.versions[]')
 
@@ -39,7 +32,6 @@ for version in $php_versions; do
         php$version-gmp \
         php$version-igbinary \
         php$version-imagick \
-        php$version-imap \
         php$version-interbase \
         php$version-intl \
         php$version-ldap \
@@ -49,7 +41,6 @@ for version in $php_versions; do
         php$version-mongodb \
         php$version-mysql \
         php$version-odbc \
-        php$version-opcache \
         php$version-pgsql \
         php$version-phpdbg \
         php$version-pspell \
@@ -67,6 +58,14 @@ for version in $php_versions; do
         php$version-zip \
         php$version-zmq
 
+        # https://php.watch/versions/8.4/imap-unbundled
+        # https://php.watch/articles/php-8-5-installation-upgrade-guide-debian-ubuntu
+        if [[ $version == "8.1" || $version == "8.3" ]]; then
+            apt-get install --no-install-recommends \
+                php$version-imap \
+                php$version-opcache
+        fi
+
         apt-get install --no-install-recommends php$version-pcov
 
         # Disable PCOV, as Xdebug is enabled by default
@@ -77,7 +76,7 @@ for version in $php_versions; do
         apt-get install --no-install-recommends php$version-recode
     fi
 
-    if [[ $version != "8.0" && $version != "8.1" && $version != "8.2" && $version != "8.3" ]]; then
+    if [[ $version != "8.0" && $version != "8.1" && $version != "8.2" && $version != "8.3" && $version != "8.5" ]]; then
         apt-get install --no-install-recommends php$version-xmlrpc php$version-json
     fi
 done
@@ -102,12 +101,5 @@ mkdir -p /etc/skel/.composer
 # Install phpunit (for PHP)
 wget -q -O phpunit https://phar.phpunit.de/phpunit-8.phar
 install phpunit /usr/local/bin/phpunit
-
-# ubuntu 20.04 libzip-dev is libzip5 based and is not compatible libzip-dev of ppa:ondrej/php
-# see https://github.com/actions/runner-images/issues/1084
-if is_ubuntu20; then
-    rm /etc/apt/sources.list.d/ondrej-*.list
-    apt-get update
-fi
 
 invoke_tests "Common" "PHP"

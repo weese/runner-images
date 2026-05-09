@@ -19,8 +19,8 @@ function Set-JavaPath {
         exit 1
     }
 
-    Write-Host "Set 'JAVA_HOME_${Version}_X64' environmental variable as $javaPath"
-    [Environment]::SetEnvironmentVariable("JAVA_HOME_${Version}_X64", $javaPath, "Machine")
+    Write-Host "Set 'JAVA_HOME_${Version}_$($Architecture.ToUpper())' environmental variable as $javaPath"
+    [Environment]::SetEnvironmentVariable("JAVA_HOME_${Version}_$($Architecture.ToUpper())", $javaPath, "Machine")
 
     if ($Default) {
         # Clean up any other Java folders from PATH to make sure that they won't conflict with each other
@@ -53,7 +53,7 @@ function Install-JavaJDK {
     )
 
     # Get Java version from api
-    $assetUrl = Invoke-RestMethod -Uri "https://api.adoptium.net/v3/assets/latest/${JDKVersion}/hotspot"
+    $assetUrl = Invoke-RestMethod -Uri "https://api.adoptium.net/v3/assets/latest/${JDKVersion}/hotspot?architecture=${Architecture}&os=windows" -Headers @{"Accept" = "application/json"}
 
     $asset = $assetUrl | Where-Object {
         $_.binary.os -eq "windows" `
@@ -91,6 +91,12 @@ function Install-JavaJDK {
     New-Item -ItemType File -Path $javaVersionPath -Name "$Architecture.complete" | Out-Null
 }
 
+if (Test-IsArm64) {
+    $javaArch = "aarch64"
+} else {
+    $javaArch = "x64"
+}
+
 $toolsetJava = (Get-ToolsetContent).java
 $defaultVersion = $toolsetJava.default
 $jdkVersionsToInstall = $toolsetJava.versions
@@ -98,19 +104,18 @@ $jdkVersionsToInstall = $toolsetJava.versions
 foreach ($jdkVersionToInstall in $jdkVersionsToInstall) {
     $isDefaultVersion = $jdkVersionToInstall -eq $defaultVersion
 
-    Install-JavaJDK -JDKVersion $jdkVersionToInstall
+    Install-JavaJDK -JDKVersion $jdkVersionToInstall -Architecture $javaArch
 
     if ($isDefaultVersion) {
-        Set-JavaPath -Version $jdkVersionToInstall -Default
+        Set-JavaPath -Version $jdkVersionToInstall -Architecture $javaArch -Default
     } else {
-        Set-JavaPath -Version $jdkVersionToInstall
+        Set-JavaPath -Version $jdkVersionToInstall -Architecture $javaArch
     }
 }
 
 # Install Java tools
 # Force chocolatey to ignore dependencies on Ant and Maven or else they will download the Oracle JDK
 Install-ChocoPackage ant -ArgumentList "--ignore-dependencies"
-# Maven 3.9.x has multiple compatibilities problems
 $toolsetMavenVersion = (Get-ToolsetContent).maven.version
 $versionToInstall = Resolve-ChocoPackageVersion -PackageName "maven" -TargetVersion $toolsetMavenVersion
 

@@ -52,6 +52,16 @@ mkdir -p $rules_directory
 touch $netfilter_rule
 echo 'ACTION=="add", SUBSYSTEM=="module", KERNEL=="nf_conntrack", RUN+="/usr/sbin/sysctl net.netfilter.nf_conntrack_tcp_be_liberal=1"' | tee -a $netfilter_rule
 
+# https://github.com/actions/runner-images/issues/13770
+# https://github.com/ravendb/ravendb/discussions/22410
+# Linux kernel 6.17 changed read_ahead_kb default from 128 to 4096 on Azure VMs
+# where disks are presented as rotational (ROTA=1). This floods the page cache
+# with unused data during random-access I/O and causes memory exhaustion and thrashing.
+if ! is_ubuntu22; then
+    readahead_rule='/etc/udev/rules.d/99-readahead.rules'
+    echo 'ACTION=="add|change", KERNEL=="sd*", ATTR{queue/read_ahead_kb}="128"' | tee "$readahead_rule"
+fi
+
 # Create symlink for tests running
 chmod +x $HELPER_SCRIPTS/invoke-tests.sh
 ln -s $HELPER_SCRIPTS/invoke-tests.sh /usr/local/bin/invoke_tests
@@ -59,9 +69,18 @@ ln -s $HELPER_SCRIPTS/invoke-tests.sh /usr/local/bin/invoke_tests
 # Disable motd updates metadata
 sed -i 's/ENABLED=1/ENABLED=0/g' /etc/default/motd-news
 
+# Remove fwupd if installed. We're running on VMs in Azure and the fwupd package is not needed.
+# Leaving it enable means periodic refreshes show in network traffic and firewall logs
+# Check if fwupd-refresh.timer exists in systemd
+if systemctl list-unit-files fwupd-refresh.timer &>/dev/null; then
+    echo "Masking fwupd-refresh.timer..."
+    systemctl mask fwupd-refresh.timer
+fi
+
+# This is a legacy check, leaving for earlier versions of Ubuntu
+# If fwupd config still exists, disable the motd updates
 if [[ -f "/etc/fwupd/daemon.conf" ]]; then
     sed -i 's/UpdateMotd=true/UpdateMotd=false/g' /etc/fwupd/daemon.conf
-    systemctl mask fwupd-refresh.timer
 fi
 
 # Disable to load providers
@@ -69,3 +88,7 @@ fi
 if is_ubuntu22; then
     sed -i 's/openssl_conf = openssl_init/#openssl_conf = openssl_init/g' /etc/ssl/openssl.cnf
 fi
+
+# Disable man-db auto update
+echo "set man-db/auto-update false" | debconf-communicate
+dpkg-reconfigure man-db

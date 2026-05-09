@@ -4,17 +4,25 @@
 ##  Supply chain security: Firefox browser - checksum validation
 ################################################################################
 
+if (Test-IsArm64) {
+    $browserArch = "win64-aarch64"
+    $driverArch = "win-aarch64"
+} else {
+    $browserArch = "win64"
+    $driverArch = "win64"
+}
+
 # Install and configure Firefox browser
 Write-Host "Get the latest Firefox version..."
 $versionsManifest = Invoke-RestMethod "https://product-details.mozilla.org/1.0/firefox_versions.json"
 
 Write-Host "Install Firefox browser..."
-$installerUrl = "https://download.mozilla.org/?product=firefox-$($versionsManifest.LATEST_FIREFOX_VERSION)&os=win64&lang=en-US"
+$installerUrl = "https://download.mozilla.org/?product=firefox-$($versionsManifest.LATEST_FIREFOX_VERSION)&os=$browserArch&lang=en-US"
 $hashUrl = "https://archive.mozilla.org/pub/firefox/releases/$($versionsManifest.LATEST_FIREFOX_VERSION)/SHA256SUMS"
 
 $externalHash = Get-ChecksumFromUrl -Type "SHA256" `
     -Url $hashUrl `
-    -FileName "win64/en-US/Firefox Setup*exe"
+    -FileName "$browserArch/en-US/Firefox Setup*exe"
 
 Install-Binary -Type EXE `
     -Url $installerUrl `
@@ -46,15 +54,14 @@ Write-Host "Download Gecko WebDriver WebDriver..."
 $geckoDriverDownloadUrl = Resolve-GithubReleaseAssetUrl `
     -Repo "mozilla/geckodriver" `
     -Version $geckoDriverVersion `
-    -UrlMatchPattern "geckodriver-*-win64.zip"
+    -UrlMatchPattern "geckodriver-*-$driverArch.zip"
 $geckoDriverArchPath = Invoke-DownloadWithRetry $geckoDriverDownloadUrl
 
 Write-Host "Expand Gecko WebDriver archive..."
 Expand-7ZipArchive -Path $geckoDriverArchPath -DestinationPath $geckoDriverPath
 
 # Validate Gecko WebDriver signature
-$geckoDriverSignatureThumbprint = "40890F2FE1ACAE18072FA7F3C0AE456AACC8570D"
-Test-FileSignature -Path "$geckoDriverPath/geckodriver.exe" -ExpectedThumbprint $geckoDriverSignatureThumbprint
+Test-FileSignature -Path "$geckoDriverPath/geckodriver.exe" -ExpectedSubject 'CN=Mozilla Corporation, OU=Firefox Engineering Operations, O=Mozilla Corporation, L=San Francisco, S=California, C=US'
 
 Write-Host "Setting the environment variables..."
 Add-MachinePathItem -PathItem $geckoDriverPath

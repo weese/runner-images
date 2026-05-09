@@ -54,16 +54,16 @@ function Get-CommandResult {
     }
 }
 
-function Test-IsUbuntu20 {
-    return (lsb_release -rs) -eq "20.04"
-}
-
 function Test-IsUbuntu22 {
     return (lsb_release -rs) -eq "22.04"
 }
 
 function Test-IsUbuntu24 {
     return (lsb_release -rs) -eq "24.04"
+}
+
+function Test-IsUbuntu26 {
+    return (lsb_release -rs) -eq "26.04"
 }
 
 function Get-ToolsetContent {
@@ -133,7 +133,7 @@ function Invoke-DownloadWithRetry {
     for ($retries = 20; $retries -gt 0; $retries--) {
         try {
             $attemptStartTime = Get-Date
-            (New-Object System.Net.WebClient).DownloadFile($Url, $DestinationPath)
+            Invoke-WebRequest -Uri $Url -Outfile $DestinationPath
             $attemptSeconds = [math]::Round(($(Get-Date) - $attemptStartTime).TotalSeconds, 2)
             Write-Host "Package downloaded in $attemptSeconds seconds"
             break
