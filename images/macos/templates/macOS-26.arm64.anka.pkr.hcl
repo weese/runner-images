@@ -139,7 +139,7 @@ build {
   }
 
   provisioner "shell" {
-    inline = ["mkdir ~/bootstrap"]
+    inline = ["mkdir -p ~/bootstrap"]
   }
 
   provisioner "file" {
@@ -155,10 +155,11 @@ build {
   provisioner "shell" {
     execute_command = "sudo sh -c '{{ .Vars }} {{ .Path }}'"
     inline          = [
+      "rm -rf ${local.image_folder}/software-report",
       "mv ${local.image_folder}/docs-gen ${local.image_folder}/software-report",
-      "mkdir ~/utils",
-      "mv ${local.image_folder}/helpers/invoke-tests.sh ~/utils",
-      "mv ${local.image_folder}/helpers/utils.sh ~/utils"
+      "mkdir -p ~/utils",
+      "mv -f ${local.image_folder}/helpers/invoke-tests.sh ~/utils",
+      "mv -f ${local.image_folder}/helpers/utils.sh ~/utils"
     ]
   }
 

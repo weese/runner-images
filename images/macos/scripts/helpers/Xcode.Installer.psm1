@@ -105,16 +105,35 @@ function Approve-XcodeLicense {
     }
 }
 
+# Each Xcode 26.x bundles its own CoreSimulator.framework version. The
+# launchd-managed CoreSimulatorService daemon retains the framework version
+# of whichever Xcode invoked it first; subsequent xcodebuild calls from a
+# different Xcode log "Framework version (X) does not match existing job
+# version (Y). Attempting to remove the stale service..." and then fail
+# with "Unable to connect to simulator". xcodebuild's automatic swap is
+# not reliable; force-killing the daemon lets the next xcodebuild
+# invocation respawn it from the current Xcode's framework.
+function Reset-CoreSimulatorService {
+    Write-Host "Resetting CoreSimulatorService daemon..."
+    bash -c "sudo launchctl bootout system /Library/LaunchDaemons/com.apple.CoreSimulator.CoreSimulatorService.plist >/dev/null 2>&1 || true"
+    bash -c "sudo killall -9 com.apple.CoreSimulator.CoreSimulatorService >/dev/null 2>&1 || true"
+    Start-Sleep -Seconds 3
+}
+
 # Wrapper around Invoke-ValidateCommand that retries on transient failures.
-# Apple's MobileAsset catalog is intermittently flaky and CoreSimulatorService
-# briefly fails to connect when switching between Xcodes that ship different
-# CoreSimulator.framework versions; both clear up after a few seconds.
+# Two known flaky modes during Xcode 26+ provisioning:
+#   1. Apple's MobileAsset catalog (xp.apple.com) intermittently 5xx's.
+#   2. CoreSimulatorService daemon-version mismatch when iterating Xcodes;
+#      requires a daemon kill to recover (see Reset-CoreSimulatorService).
+# Pass -ResetCoreSimulator on calls that touch simulator state so the
+# daemon is reset between attempts.
 function Invoke-ValidateCommandWithRetry {
     param (
         [Parameter(Mandatory)]
         [string] $Command,
         [int] $RetryAttempts = 5,
-        [int] $PauseDurationSecs = 30
+        [int] $PauseDurationSecs = 30,
+        [switch] $ResetCoreSimulator
     )
 
     for ($Attempt = 1; $Attempt -le $RetryAttempts; $Attempt++) {
@@ -123,6 +142,9 @@ function Invoke-ValidateCommandWithRetry {
         } catch {
             if ($Attempt -eq $RetryAttempts) { throw }
             Write-Host "Attempt $Attempt of [$Command] failed: $_. Retrying in $PauseDurationSecs s..."
+            if ($ResetCoreSimulator) {
+                Reset-CoreSimulatorService
+            }
             Start-Sleep -Seconds $PauseDurationSecs
         }
     }
@@ -162,6 +184,10 @@ function Install-XcodeAdditionalSimulatorRuntimes {
     )
 
     Write-Host "Installing Simulator Runtimes for Xcode $Version ..."
+    # Force the daemon to respawn against THIS Xcode's CoreSimulator.framework
+    # before the first xcodebuild call, otherwise we hit the version-mismatch
+    # path on every Xcode after the first one.
+    Reset-CoreSimulatorService
     $xcodebuildPath = Get-XcodeToolPath -Version $Version -ToolName 'xcodebuild'
     $validRuntimes = @("iOS", "watchOS", "tvOS")
 
@@ -179,7 +205,7 @@ function Install-XcodeAdditionalSimulatorRuntimes {
     # Install all runtimes / skip runtimes
     if ($Runtimes -eq "default") {
         Write-Host "Installing all runtimes for Xcode $Version ..."
-        Invoke-ValidateCommandWithRetry "$xcodebuildPath -downloadAllPlatforms $archSuffix" | Out-Null
+        Invoke-ValidateCommandWithRetry "$xcodebuildPath -downloadAllPlatforms $archSuffix" -ResetCoreSimulator | Out-Null
         return
     } elseif ($Runtimes -eq "none") {
         Write-Host "Skipping runtimes installation for Xcode $Version ..."
@@ -226,14 +252,14 @@ function Install-XcodeAdditionalSimulatorRuntimes {
                 }
                 "default" {
                     Write-Host "Installing default $platform runtime for Xcode $Version ..."
-                    Invoke-ValidateCommandWithRetry "$xcodebuildPath -downloadPlatform $platform $archSuffix" | Out-Null
+                    Invoke-ValidateCommandWithRetry "$xcodebuildPath -downloadPlatform $platform $archSuffix" -ResetCoreSimulator | Out-Null
                     continue
                 }
                 default {
                     # Version might be a semver or a build number
                     if (($platformVersion -match "^\d{1,2}\.\d(\.\d)?$") -or ($platformVersion -match "^[a-zA-Z0-9]{6,8}$")) {
                         Write-Host "Installing $platform $platformVersion runtime for Xcode $Version ..."
-                        Invoke-ValidateCommandWithRetry "$xcodebuildPath -downloadPlatform $platform -buildVersion $platformVersion $archSuffix" | Out-Null
+                        Invoke-ValidateCommandWithRetry "$xcodebuildPath -downloadPlatform $platform -buildVersion $platformVersion $archSuffix" -ResetCoreSimulator | Out-Null
                         continue
                     }
                     throw "$platformVersion is not a valid value for $platform version. Valid values are 'default', or 'skip', or a semver from 0.0 to 99.9.(9), or a build number."
