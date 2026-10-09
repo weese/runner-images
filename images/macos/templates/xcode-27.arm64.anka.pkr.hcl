@@ -1,7 +1,7 @@
 packer {
   required_plugins {
     tart = {
-      version = ">= 0.6.0"
+      version = ">= 1.17.0"
       source  = "github.com/cirruslabs/tart"
     }
   }
@@ -140,6 +140,8 @@ source "tart-cli" "tart" {
   cpu_count    = "${var.vcpu_count}"
   memory_gb    = "${trimsuffix(var.ram_size, "G")}"
   disk_size_gb = 200
+  // ASIF disks can't be partition-edited offline, so the recovery partition must stay in place
+  recovery_partition = "keep"
   ssh_username = "admin"
   ssh_password = "admin"
   ssh_timeout  = "120s"
