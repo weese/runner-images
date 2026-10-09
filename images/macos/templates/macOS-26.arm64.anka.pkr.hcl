@@ -312,6 +312,12 @@ build {
     script          = "${path.root}/../scripts/build/Configure-Xcode-Simulators.ps1"
   }
 
+  provisioner "shell" {
+    environment_vars = ["IMAGE_FOLDER=${local.image_folder}"]
+    execute_command  = "chmod +x {{ .Path }}; source $HOME/.bash_profile; {{ .Vars }} {{ .Path }}"
+    script           = "${path.root}/../scripts/build/install-openssl.sh"
+  }
+
 #  provisioner "shell" {
 #    environment_vars = ["IMAGE_FOLDER=${local.image_folder}"]
 #    execute_command  = "source $HOME/.bash_profile; {{ .Vars }} {{ .Path }}"
